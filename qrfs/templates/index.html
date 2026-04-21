@@ -3,11 +3,15 @@
 
 {% block extra_head %}
 <style>
+  .home-intro {
+    max-width: 72ch;
+    margin-bottom: 1rem;
+  }
   .home-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
     gap: 14px;
-    margin: 1rem 0 1.25rem;
+    margin: 1rem 0 1.1rem;
   }
   .home-card,
   .update-panel {
@@ -21,18 +25,39 @@
     margin-top: 0;
     margin-bottom: 0.5rem;
   }
+  .home-card p,
+  .update-panel p {
+    margin: 0.45rem 0;
+  }
   .home-actions {
     display: flex;
     flex-wrap: wrap;
     gap: 10px;
-    margin-top: 0.9rem;
+    margin-top: 0.95rem;
   }
+  .mini-points {
+    margin: 0.8rem 0 0;
+    padding-left: 1.1rem;
+  }
+  .mini-points li {
+    margin: 0.28rem 0;
+  }
+  .inline-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 0.75rem;
+  }
+  .meta-chip,
   .status-pill {
     display: inline-block;
     padding: 0.28rem 0.7rem;
     border-radius: 999px;
     border: 1px solid rgba(127, 127, 127, 0.28);
     font-size: 0.92rem;
+  }
+  .update-panel {
+    margin-top: 1rem;
   }
   .status-details {
     opacity: 0.82;
@@ -57,15 +82,26 @@
 {% block content %}
 <p>Local · offline · printable</p>
 <h2>Optical data transport with multiple QR codes, encryption, and signatures.</h2>
-<p>
+<p class="home-intro">
   Generate A4 pages, reconstruct from PDFs, images, or camera, use local identities and exportable backups.
   Everything stays on your device.
 </p>
 
+<div class="inline-meta" aria-label="Project features">
+  <span class="meta-chip">5×6 layout · 30 QR / page</span>
+  <span class="meta-chip">Files · audio · photos</span>
+  <span class="meta-chip">Offline-first workflow</span>
+</div>
+
 <div class="home-grid">
   <section class="home-card">
     <h3>Encode</h3>
-    <p>Files, audio, and photos from a single entry point, with quick profiles and advanced controls when needed.</p>
+    <p>Single entry point for files, audio, and photos, with fast presets first and lower-level controls only when needed.</p>
+    <ul class="mini-points">
+      <li>Quick profiles plus advanced tuning</li>
+      <li>PDF output by default, optional PNG ZIP</li>
+      <li>Cleartext, password, or recipient public key</li>
+    </ul>
     <div class="home-actions">
       <a href="/encode">Open encode</a>
       <a href="/encode/photo">Photo mode</a>
@@ -74,25 +110,50 @@
 
   <section class="home-card">
     <h3>Decode</h3>
-    <p>Reconstruct from PDF, images, or the live camera scanner, then unlock only when a password or private key is actually required.</p>
+    <p>Recover from multipage PDFs, image batches, or live camera capture, then ask for credentials only if the payload actually needs them.</p>
+    <ul class="mini-points">
+      <li>PDF, images, or live scanner</li>
+      <li>Reconstruction before unlock</li>
+      <li>Rescue path for manual recovery</li>
+    </ul>
     <div class="home-actions">
       <a href="/decode">Open decode</a>
       <a href="/scan">Live camera</a>
+      <a href="/rescue">Rescue</a>
     </div>
   </section>
 
   <section class="home-card">
     <h3>Identity</h3>
-    <p>Manage local identities, public identity cards, encrypted backups, recovery material, and trusted contacts.</p>
+    <p>Manage local keys, public identity cards, encrypted backups, recovery sheets, and trusted contacts for regular exchanges.</p>
+    <ul class="mini-points">
+      <li>Local identity and public card</li>
+      <li>Encrypted backup and cleartext recovery</li>
+      <li>Contacts for recipient key workflows</li>
+    </ul>
     <div class="home-actions">
       <a href="/keys">Keys</a>
       <a href="/contacts">Contacts</a>
     </div>
   </section>
+
+  <section class="home-card">
+    <h3>Paper workflow</h3>
+    <p>Use QRFS as a printable transport layer: generate pages, move them offline, then reassemble them later from scans or photos.</p>
+    <ul class="mini-points">
+      <li>A4-oriented transport format</li>
+      <li>Good fit for phones, scanners, and mixed capture</li>
+      <li>Test tools available without touching the payload flow</li>
+    </ul>
+    <div class="home-actions">
+      <a href="/testbench">Testbench</a>
+      <a href="/scan">Open camera</a>
+    </div>
+  </section>
 </div>
 
 <section class="update-panel" aria-labelledby="github-updates-title">
-  <h3 id="github-updates-title">Identity · GitHub updates</h3>
+  <h3 id="github-updates-title">GitHub updates</h3>
   <p>Check whether this local QRFS instance matches the latest commit on GitHub, then pull updates directly when available.</p>
 
   <p>
