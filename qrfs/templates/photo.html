@@ -466,7 +466,7 @@
     hiddenQrEcc.value = profile.qrEcc;
     hiddenChunkMode.value = profile.chunkMode;
     summaryProfile.textContent = profile.label;
-    summaryCapacity.textContent = `~${profile.pageBytes.toLocalString('it-IT')} B`;
+    summaryCapacity.textContent = `~${Number(profile.pageBytes).toLocaleString('it-IT')} B`;
     summaryPages.textContent = String(currentTargetPages());
     summaryMode.textContent = mode.label;
     summaryDimension.textContent = `~${currentTargetPages() > 1 ? mode.maxDim3 : mode.maxDim1} px`;
