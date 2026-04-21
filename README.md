@@ -188,3 +188,10 @@ QRFS is a niche tool.
 
 But in the right context, it enables something unique:
 offline, encrypted, physical data transmission and storage.
+
+---
+
+<p align="center">
+  <b>Made with ❤️ for freedom</b><br><br>
+  <a href="https://github.com/flyingsurveyor">FlyingSurveyor</a> · Italy
+</p>
