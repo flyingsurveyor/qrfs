@@ -3,167 +3,191 @@
 
 {% block extra_head %}
 <style>
-  .home-intro {
-    max-width: 72ch;
-    margin-bottom: 1rem;
-  }
   .home-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 14px;
-    margin: 1rem 0 1.1rem;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 18px;
   }
-  .home-card,
-  .update-panel {
-    border: 1px solid rgba(127, 127, 127, 0.22);
-    border-radius: 16px;
-    padding: 16px;
-    background: rgba(127, 127, 127, 0.05);
+  .home-card .actions {
+    margin-top: 14px;
   }
-  .home-card h3,
-  .update-panel h3 {
-    margin-top: 0;
-    margin-bottom: 0.5rem;
-  }
-  .home-card p,
-  .update-panel p {
-    margin: 0.45rem 0;
-  }
-  .home-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    margin-top: 0.95rem;
-  }
-  .mini-points {
-    margin: 0.8rem 0 0;
+  .home-card ul {
+    margin: 10px 0 0;
     padding-left: 1.1rem;
   }
-  .mini-points li {
-    margin: 0.28rem 0;
+  .home-card li {
+    margin: 0.32rem 0;
   }
-  .inline-meta {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 0.75rem;
-  }
-  .meta-chip,
-  .status-pill {
-    display: inline-block;
-    padding: 0.28rem 0.7rem;
-    border-radius: 999px;
-    border: 1px solid rgba(127, 127, 127, 0.28);
-    font-size: 0.92rem;
-  }
-  .update-panel {
-    margin-top: 1rem;
-  }
-  .status-details {
-    opacity: 0.82;
-    margin-top: 0.55rem;
+  .home-updates {
+    margin-top: 18px;
   }
   .update-log {
     display: none;
-    margin-top: 0.9rem;
-    padding: 12px;
-    border-radius: 12px;
-    border: 1px solid rgba(127, 127, 127, 0.22);
-    background: rgba(127, 127, 127, 0.04);
+    margin-top: 12px;
+    padding: 14px;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    background: #f6f8f7;
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     font-size: 0.92rem;
     white-space: pre-wrap;
-    max-height: 260px;
+    max-height: 280px;
     overflow: auto;
+  }
+  .status-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .status-copy {
+    margin-top: 10px;
+  }
+  .quick-links {
+    margin-top: 14px;
+  }
+  @media (max-width: 780px) {
+    .home-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-<p>Local · offline · printable</p>
-<h2>Optical data transport with multiple QR codes, encryption, and signatures.</h2>
-<p class="home-intro">
-  Generate A4 pages, reconstruct from PDFs, images, or camera, use local identities and exportable backups.
-  Everything stays on your device.
-</p>
-
-<div class="inline-meta" aria-label="Project features">
-  <span class="meta-chip">5×6 layout · 30 QR / page</span>
-  <span class="meta-chip">Files · audio · photos</span>
-  <span class="meta-chip">Offline-first workflow</span>
-</div>
+<section class="page-intro card subtle-card compact-intro">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Home</div>
+      <h2>Optical data transport with multiple QR codes, encryption, and signatures</h2>
+      <p class="lead-sm">Generate A4 pages, reconstruct from PDFs, images, or camera, use local identities and exportable backups, and keep the whole workflow on your device.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge success">Layout 5×6</span>
+      <span class="badge neutral">30 QR / page</span>
+      <span class="badge neutral">Local · offline · printable</span>
+    </div>
+  </div>
+  <nav class="subnav-tabs quick-links" aria-label="Quick links">
+    <a href="{{ url_for('encode.encode_view') }}">Encode</a>
+    <a href="{{ url_for('decode.decode_view') }}">Decode</a>
+    <a href="{{ url_for('scan.scan_view') }}">Live camera</a>
+    <a href="{{ url_for('keys.keys_view') }}">Keys</a>
+    <a href="{{ url_for('contacts.contacts_view') }}">Contacts</a>
+  </nav>
+</section>
 
 <div class="home-grid">
-  <section class="home-card">
-    <h3>Encode</h3>
-    <p>Single entry point for files, audio, and photos, with fast presets first and lower-level controls only when needed.</p>
-    <ul class="mini-points">
-      <li>Quick profiles plus advanced tuning</li>
+  <section class="card form-section home-card">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Encode</div>
+        <h3>Generate QR packages for files, audio, or photos</h3>
+      </div>
+    </div>
+    <div class="callout info">
+      <strong>One entry point, multiple payload types.</strong> Start fast with practical presets, then go deeper only when you actually need chunking, ECC, or recovery tuning.
+    </div>
+    <ul>
+      <li>File, audio, and dedicated photo mode</li>
       <li>PDF output by default, optional PNG ZIP</li>
       <li>Cleartext, password, or recipient public key</li>
+      <li>Optional digital signature with local identity</li>
     </ul>
-    <div class="home-actions">
-      <a href="/encode">Open encode</a>
-      <a href="/encode/photo">Photo mode</a>
+    <div class="actions">
+      <a class="button" href="{{ url_for('encode.encode_view') }}">Open encode</a>
+      <a class="button secondary" href="{{ url_for('encode.photo_view') }}">Photo mode</a>
+      <a class="button secondary" href="{{ url_for('encode.voice_view') }}">Audio mode</a>
     </div>
   </section>
 
-  <section class="home-card">
-    <h3>Decode</h3>
-    <p>Recover from multipage PDFs, image batches, or live camera capture, then ask for credentials only if the payload actually needs them.</p>
-    <ul class="mini-points">
-      <li>PDF, images, or live scanner</li>
-      <li>Reconstruction before unlock</li>
-      <li>Rescue path for manual recovery</li>
+  <section class="card form-section home-card">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Decode</div>
+        <h3>Reconstruct from PDFs, images, or live camera</h3>
+      </div>
+    </div>
+    <div class="callout neutral">
+      <strong>Unlock only when needed.</strong> QRFS reconstructs the blob first, then asks for a password or private key only if the payload is actually encrypted.
+    </div>
+    <ul>
+      <li>Multipage PDF and image-batch input</li>
+      <li>Live scanner workflow from the browser camera</li>
+      <li>Rescue path for mixed or damaged captures</li>
+      <li>Clear separation between reconstruction and decryption</li>
     </ul>
-    <div class="home-actions">
-      <a href="/decode">Open decode</a>
-      <a href="/scan">Live camera</a>
-      <a href="/rescue">Rescue</a>
+    <div class="actions">
+      <a class="button" href="{{ url_for('decode.decode_view') }}">Open decode</a>
+      <a class="button secondary" href="{{ url_for('scan.scan_view') }}">Live camera</a>
+      <a class="button secondary" href="{{ url_for('decode.rescue_view') }}">Rescue</a>
     </div>
   </section>
 
-  <section class="home-card">
-    <h3>Identity</h3>
-    <p>Manage local keys, public identity cards, encrypted backups, recovery sheets, and trusted contacts for regular exchanges.</p>
-    <ul class="mini-points">
-      <li>Local identity and public card</li>
-      <li>Encrypted backup and cleartext recovery</li>
-      <li>Contacts for recipient key workflows</li>
+  <section class="card form-section home-card">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Identity</div>
+        <h3>Local keys, public cards, backups, and trusted contacts</h3>
+      </div>
+    </div>
+    <div class="callout success">
+      <strong>Built for local control.</strong> Keep signing and decryption material on the device, export public cards, and maintain a contact list for regular recipient workflows.
+    </div>
+    <ul>
+      <li>Generate and manage your local identity</li>
+      <li>Export public identity cards for sharing</li>
+      <li>Create encrypted backups and recovery sheets</li>
+      <li>Store recipient contacts for public-key protection</li>
     </ul>
-    <div class="home-actions">
-      <a href="/keys">Keys</a>
-      <a href="/contacts">Contacts</a>
+    <div class="actions">
+      <a class="button" href="{{ url_for('keys.keys_view') }}">Keys</a>
+      <a class="button secondary" href="{{ url_for('contacts.contacts_view') }}">Contacts</a>
     </div>
   </section>
 
-  <section class="home-card">
-    <h3>Paper workflow</h3>
-    <p>Use QRFS as a printable transport layer: generate pages, move them offline, then reassemble them later from scans or photos.</p>
-    <ul class="mini-points">
-      <li>A4-oriented transport format</li>
-      <li>Good fit for phones, scanners, and mixed capture</li>
-      <li>Test tools available without touching the payload flow</li>
+  <section class="card form-section home-card">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Paper workflow</div>
+        <h3>Printable transport for offline and mixed-capture use</h3>
+      </div>
+    </div>
+    <div class="callout info">
+      <strong>Designed for the physical world.</strong> Generate pages, move them across offline boundaries, then rebuild the original payload later from scans, photos, or camera sessions.
+    </div>
+    <ul>
+      <li>A4-oriented page workflow</li>
+      <li>Fits phones, scanners, and messy real capture</li>
+      <li>Useful for handoff, archiving, and field transport</li>
+      <li>Testbench available without touching real payloads</li>
     </ul>
-    <div class="home-actions">
-      <a href="/testbench">Testbench</a>
-      <a href="/scan">Open camera</a>
+    <div class="actions">
+      <a class="button" href="{{ url_for('testbench.testbench_view') }}">Testbench</a>
+      <a class="button secondary" href="{{ url_for('scan.scan_view') }}">Open camera</a>
     </div>
   </section>
 </div>
 
-<section class="update-panel" aria-labelledby="github-updates-title">
-  <h3 id="github-updates-title">GitHub updates</h3>
-  <p>Check whether this local QRFS instance matches the latest commit on GitHub, then pull updates directly when available.</p>
+<section class="card form-section home-updates" aria-labelledby="github-updates-title">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">Maintenance</div>
+      <h3 id="github-updates-title">GitHub updates</h3>
+    </div>
+    <div class="status-line">
+      <span class="badge neutral" id="update-status">Checking…</span>
+    </div>
+  </div>
 
-  <p>
-    <span class="status-pill" id="update-status">Checking…</span>
-  </p>
-  <p class="status-details" id="update-details">Loading update status…</p>
+  <div class="callout neutral status-copy">
+    <strong>Check the local checkout against GitHub.</strong>
+    <div id="update-details">Loading update status…</div>
+  </div>
 
-  <div class="home-actions">
-    <button type="button" id="update-refresh-btn">Check now</button>
-    <button type="button" id="update-run-btn" disabled>Update now</button>
+  <div class="actions">
+    <button type="button" class="button secondary" id="update-refresh-btn">Check now</button>
+    <button type="button" class="button" id="update-run-btn" disabled>Update now</button>
   </div>
 
   <pre class="update-log" id="update-log" aria-live="polite"></pre>
