@@ -1,0 +1,404 @@
+{% extends 'base.html' %}
+{% block title %}Keys · QR Filesystem{% endblock %}
+{% block content %}
+<section class="page-intro card subtle-card compact-intro">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Keys</div>
+      <h2>Identity, public card, and recovery</h2>
+      <p class="lead-sm">Manage the local identity, public identity card, encrypted backups, and recovery sheets.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge {% if has_identity %}success{% else %}neutral{% endif %}">{% if has_identity %}Identity present{% else %}No identity{% endif %}</span>
+      <span class="badge neutral">Argon2id</span>
+    </div>
+  </div>
+</section>
+
+{% if not has_identity %}
+<section class="card stack-md">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">Initial setup</div>
+      <h3>Generate or import your identity</h3>
+    </div>
+  </div>
+  <p class="lead-sm">You can create a new local identity or import an encrypted backup exported earlier.</p>
+  <form method="post" class="form-grid" autocomplete="off">
+    <input type="hidden" name="action" value="generate">
+    <label>
+      <span>Display name (optional)</span>
+      <input type="text" name="display_name" placeholder="E.g. Valley Station / Alice">
+    </label>
+    <label>
+      <span>Master password</span>
+      <input type="password" name="master_password" minlength="14" required placeholder="At least 14 characters" autocomplete="new-password">
+      <small>Used to unlock and protect the local identity.</small>
+    </label>
+    <label>
+      <span>Confirm master password</span>
+      <input type="password" name="master_password_confirm" minlength="14" required placeholder="Repeat the master password" autocomplete="new-password">
+    </label>
+    <div class="actions">
+      <button class="button" type="submit">Generate identity</button>
+      <a class="button secondary" href="{{ url_for('index') }}">Back to home</a>
+    </div>
+  </form>
+</section>
+{% endif %}
+
+{% if has_identity %}
+<section class="card stack-md">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">Identity card</div>
+      <h3>Public materials</h3>
+      
+    </div>
+  </div>
+
+  {% if public_info %}
+  <div class="card-grid two-up">
+    <section class="soft-card compact-card">
+      <div class="eyebrow">Identity</div>
+      <h4>{{ public_info.display_name or 'Unnamed identity card' }}</h4>
+      <dl class="meta">
+        <div><dt>Created</dt><dd>{{ public_info.created_at }}</dd></div>
+        <div><dt>Enc key ID</dt><dd><code>{{ public_info.encryption_key_id }}</code></dd></div>
+        <div><dt>Sign key ID</dt><dd><code>{{ public_info.signing_key_id }}</code></dd></div>
+      </dl>
+      <label>
+        <span>Identity card JSON</span>
+        <textarea rows="10" readonly class="readonly-mono" spellcheck="false">{{ qr_data.identity_card_pretty }}</textarea>
+      </label>
+      <div class="actions">
+        <form method="post">
+          <input type="hidden" name="action" value="download_card">
+          <button class="button secondary" type="submit">Download identity card</button>
+        </form>
+      </div>
+    </section>
+
+    <section class="soft-card compact-card">
+      <div class="eyebrow">QR identity card</div>
+      <h4>Quick sharing</h4>
+      {% if qr_data.identity_qr_uri %}
+      <img src="{{ qr_data.identity_qr_uri }}" alt="QR identity card" class="key-qr">
+      {% endif %}
+      <p class="hint">This QR is the best way to import yourself into a complete QRFS address book, including signature verification.</p>
+    </section>
+  </div>
+
+  <div class="card-grid two-up">
+    <section class="soft-card compact-card">
+      <div class="eyebrow">Encryption</div>
+      <h4>X25519</h4>
+      <dl class="meta">
+        <div><dt>Key ID</dt><dd><code>{{ public_info.encryption_key_id }}</code></dd></div>
+        <div><dt>Fingerprint</dt><dd><code class="small-code">{{ public_info.encryption_fingerprint }}</code></dd></div>
+      </dl>
+      <label>
+        <span>Public key</span>
+        <textarea rows="2" readonly class="readonly-mono" spellcheck="false">{{ public_info.encryption_public_key_b64 }}</textarea>
+      </label>
+    </section>
+
+    <section class="soft-card compact-card">
+      <div class="eyebrow">Signature</div>
+      <h4>Ed25519</h4>
+      <dl class="meta">
+        <div><dt>Key ID</dt><dd><code>{{ public_info.signing_key_id }}</code></dd></div>
+        <div><dt>Fingerprint</dt><dd><code class="small-code">{{ public_info.signing_fingerprint }}</code></dd></div>
+      </dl>
+      <label>
+        <span>Public key</span>
+        <textarea rows="2" readonly class="readonly-mono" spellcheck="false">{{ public_info.signing_public_key_b64 }}</textarea>
+      </label>
+    </section>
+  </div>
+  {% else %}
+  <div class="callout warning">
+    <strong>Public data unavailable.</strong> The private identity seems present, but the public materials are unreadable or have not been regenerated yet.
+  </div>
+  {% endif %}
+</section>
+{% endif %}
+
+{% if public_info_warning %}
+<section class="callout warning">
+  <strong>Warning:</strong> {{ public_info_warning }}
+</section>
+{% endif %}
+
+<section class="card stack-md">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">Actions</div>
+      <h3>Sensitive operations</h3>
+    </div>
+  </div>
+
+  <div class="card-grid two-up">
+    {% if has_identity %}
+    <section class="soft-card compact-card">
+      <h4>Show private keys for temporary copy</h4>
+      <p class="hint">After unlocking, a temporary modal window with copy buttons will appear. When closed, the content is cleared from the page.</p>
+      <form method="post" class="form-grid" autocomplete="off">
+        <input type="hidden" name="action" value="unlock">
+        <label>
+          <span>Master password</span>
+          <input type="password" name="master_password" required autocomplete="current-password" placeholder="Enter the master password">
+        </label>
+        <div class="actions">
+          <button class="button" type="submit">Unlock in temporary window</button>
+        </div>
+      </form>
+    </section>
+    {% endif %}
+
+    <section class="soft-card compact-card stack-md">
+      {% if has_identity %}
+      <div>
+        <h4>Encrypted identity backup</h4>
+        <p class="hint">Export an encrypted backup of the private keys. You can store it elsewhere and re-import it in case of reinstall or migration.</p>
+      </div>
+      <form method="post" class="form-grid" autocomplete="off">
+        <input type="hidden" name="action" value="export_backup">
+        <label>
+          <span>Current master password</span>
+          <input type="password" name="master_password" required autocomplete="current-password" placeholder="Unlock the identity for backup">
+        </label>
+        <label>
+          <span>Backup password (optional)</span>
+          <input type="password" name="backup_password" minlength="14" autocomplete="new-password" placeholder="If empty, use the current master password">
+        </label>
+        <label>
+          <span>Confirm password backup</span>
+          <input type="password" name="backup_password_confirm" minlength="14" autocomplete="new-password" placeholder="Repeat the backup password">
+        </label>
+        <div class="actions wrap">
+          <button class="button secondary" type="submit">Download encrypted backup</button>
+        </div>
+      </form>
+
+      <form method="post" class="form-grid danger-zone" autocomplete="off">
+        <input type="hidden" name="action" value="download_recovery_sheet">
+        <label>
+          <span>Current master password</span>
+          <input type="password" name="master_password" required autocomplete="current-password" placeholder="Required to export cleartext private keys">
+        </label>
+        <div class="callout warning">
+          <strong>Cleartext recovery sheet.</strong> This export contains unencrypted private keys. Use it only for physical offline storage and guard it very carefully.
+        </div>
+        <div class="actions wrap">
+          <button class="button danger" type="submit">Download cleartext recovery sheet</button>
+        </div>
+      </form>
+      <div class="divider"></div>
+      {% endif %}
+
+      <div>
+        <h4>Import identity backup</h4>
+        <p class="hint">Import an encrypted backup exported earlier. If a local identity already exists, you must enable overwrite.</p>
+      </div>
+      <form method="post" enctype="multipart/form-data" class="form-grid" autocomplete="off">
+        <input type="hidden" name="action" value="import_backup">
+        <label>
+          <span>Backup JSON file</span>
+          <input type="file" name="backup_file" accept=".json,.txt,application/json,text/plain">
+        </label>
+        <label>
+          <span>Or paste the backup</span>
+          <textarea name="backup_payload" rows="6" placeholder="Paste the encrypted backup content here"></textarea>
+        </label>
+        <label>
+          <span>Backup password</span>
+          <input type="password" name="backup_import_password" required autocomplete="current-password" placeholder="Password used to encrypt the backup">
+        </label>
+        <label>
+          <span>New master password (optional)</span>
+          <input type="password" name="new_master_password" minlength="14" autocomplete="new-password" placeholder="If empty, reuse the backup password">
+        </label>
+        <label>
+          <span>Confirm new master password</span>
+          <input type="password" name="new_master_password_confirm" minlength="14" autocomplete="new-password" placeholder="Repeat the new master password">
+        </label>
+        <label class="checkbox-inline">
+          <input type="checkbox" name="overwrite_identity">
+          <span>Overwrite the existing local identity</span>
+        </label>
+        <div class="actions">
+          <button class="button" type="submit">Import backup</button>
+        </div>
+      </form>
+
+      <div class="divider"></div>
+      <div>
+        <h4>Import raw private keys / recovery sheet</h4>
+        <p class="hint">Use this section if you stored the private keys elsewhere, for example on paper. You can import a cleartext JSON recovery sheet or paste the two base64 private keys directly.</p>
+      </div>
+      <form method="post" enctype="multipart/form-data" class="form-grid danger-zone" autocomplete="off">
+        <input type="hidden" name="action" value="import_recovery">
+        <label>
+          <span>Recovery sheet file (optional)</span>
+          <input type="file" name="recovery_file" accept=".json,.txt,application/json,text/plain">
+        </label>
+        <label>
+          <span>Or paste the recovery sheet</span>
+          <textarea name="recovery_payload" rows="6" placeholder="Paste the cleartext recovery sheet here"></textarea>
+        </label>
+        <label>
+          <span>Display name (only if importing raw keys)</span>
+          <input type="text" name="recovery_display_name" placeholder="E.g. Valley Station / Alice">
+        </label>
+        <label>
+          <span>New master password</span>
+          <input type="password" name="recovery_master_password" minlength="14" required autocomplete="new-password" placeholder="It will protect the new local identity">
+        </label>
+        <label>
+          <span>Confirm master password</span>
+          <input type="password" name="recovery_master_password_confirm" minlength="14" required autocomplete="new-password" placeholder="Repeat the new master password">
+        </label>
+        <label>
+          <span>Encryption private key X25519</span>
+          <textarea name="recovery_encryption_private_key" rows="3" class="readonly-mono" placeholder="Base64 encryption private key"></textarea>
+        </label>
+        <label>
+          <span>Signing private key Ed25519</span>
+          <textarea name="recovery_signing_private_key" rows="3" class="readonly-mono" placeholder="Base64 signing private key"></textarea>
+        </label>
+        <label class="checkbox-inline">
+          <input type="checkbox" name="overwrite_identity">
+          <span>Overwrite the existing local identity</span>
+        </label>
+        <div class="callout warning">
+          <strong>Warning:</strong> if you import raw private keys, make sure they come from a trusted source and have not already been exposed.
+        </div>
+        <div class="actions wrap">
+          <button class="button danger" type="submit">Import private material</button>
+        </div>
+      </form>
+
+      {% if has_identity %}
+      <div class="divider"></div>
+      <div>
+        <h4>Regenerate or delete identity</h4>
+      </div>
+      <form method="post" class="form-grid" autocomplete="off">
+        <input type="hidden" name="action" value="generate">
+        <label>
+          <span>Display name (optional)</span>
+          <input type="text" name="display_name" placeholder="New display name">
+        </label>
+        <label>
+          <span>New master password</span>
+          <input type="password" name="master_password" minlength="14" required autocomplete="new-password" placeholder="New master password">
+        </label>
+        <label>
+          <span>Confirm new master password</span>
+          <input type="password" name="master_password_confirm" minlength="14" required autocomplete="new-password" placeholder="Repeat the new master password">
+        </label>
+        <div class="actions">
+          <button class="button secondary" type="submit">Regenerate identity</button>
+        </div>
+      </form>
+
+      <form method="post" onsubmit="return confirm('Are you sure? The keys will be permanently deleted.');">
+        <input type="hidden" name="action" value="delete">
+        <button class="button danger" type="submit">Delete identity</button>
+      </form>
+      {% endif %}
+    </section>
+  </div>
+</section>
+
+{% if unlocked %}
+<dialog id="secret-modal" class="secret-modal">
+  <div class="secret-modal-inner">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Private keys</div>
+        <h3>Temporary window</h3>
+      </div>
+      <button type="button" class="button secondary small" id="close-secret-modal-top">Close</button>
+    </div>
+    <div class="callout warning">
+      <strong>Warning:</strong> copy only what you need. When you close this window, the content is removed from the page.
+    </div>
+    <div class="stack-md" id="secret-modal-content">
+      <label>
+        <span>Encryption private key</span>
+        <textarea rows="3" readonly class="readonly-mono secret-field" id="enc-secret" spellcheck="false">{{ unlocked.encryption_private_key_b64 }}</textarea>
+      </label>
+      <div class="actions">
+        <button type="button" class="button secondary small" data-copy-target="enc-secret">Copy encryption key</button>
+      </div>
+      <label>
+        <span>Signing private key</span>
+        <textarea rows="3" readonly class="readonly-mono secret-field" id="sign-secret" spellcheck="false">{{ unlocked.signing_private_key_b64 }}</textarea>
+      </label>
+      <div class="actions">
+        <button type="button" class="button secondary small" data-copy-target="sign-secret">Copy signing key</button>
+      </div>
+    </div>
+    <div class="actions">
+      <button type="button" class="button" id="close-secret-modal">I've copied it, close and clear</button>
+    </div>
+  </div>
+</dialog>
+{% endif %}
+{% endblock %}
+
+{% block extra_scripts %}
+{% if unlocked %}
+<script>
+(() => {
+  const modal = document.getElementById('secret-modal');
+  const content = document.getElementById('secret-modal-content');
+  if (!modal || !content) return;
+
+  function wipeSecrets() {
+    content.querySelectorAll('.secret-field').forEach((field) => {
+      field.value = '';
+      field.textContent = '';
+      field.setAttribute('data-wiped', '1');
+    });
+  }
+
+  async function copyFrom(targetId) {
+    const el = document.getElementById(targetId);
+    if (!el || !el.value) return;
+    try {
+      await navigator.clipboard.writeText(el.value);
+    } catch {
+      el.select();
+      document.execCommand('copy');
+      el.setSelectionRange(0, 0);
+    }
+  }
+
+  document.querySelectorAll('[data-copy-target]').forEach((btn) => {
+    btn.addEventListener('click', () => copyFrom(btn.dataset.copyTarget));
+  });
+
+  function closeAndWipe() {
+    wipeSecrets();
+    if (modal.open) modal.close();
+  }
+
+  document.getElementById('close-secret-modal').addEventListener('click', closeAndWipe);
+  document.getElementById('close-secret-modal-top').addEventListener('click', closeAndWipe);
+  modal.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    closeAndWipe();
+  });
+  window.addEventListener('pagehide', wipeSecrets);
+  window.addEventListener('pageshow', (event) => {
+    if (event.persisted) closeAndWipe();
+  });
+
+  modal.showModal();
+})();
+</script>
+{% endif %}
+{% endblock %}

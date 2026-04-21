@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Reconstructed file · QR Filesystem{% endblock %}
+{% block content %}
+<section class="card result-hero">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Decoding complete</div>
+      <h2>File reconstructed successfully</h2>
+      <p class="lead-sm"><strong>{{ original_name }}</strong> has been reconstructed, decrypted, and prepared for download.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge success">{{ qr_count }} QR read</span>
+      <span class="badge neutral">{{ 'Signature verified' if signature_info else 'No signature' }}</span>
+      <span class="badge neutral">{% if encryption_mode == 'clear' %}Cleartext{% elif encryption_mode == 'password' %}Password{% else %}Public key{% endif %}</span>
+    </div>
+  </div>
+
+  <div class="actions hero-actions">
+    <a class="button" href="{{ url_for('decode.download_restored', filename=output_name) }}">Download file</a>
+    <a class="button secondary" href="{{ url_for('decode.decode_view') }}">New decode</a>
+    <a class="button secondary" href="{{ url_for('scan.scan_view') }}">Open camera</a>
+  </div>
+</section>
+
+<section class="stats-grid result-stats">
+  <div>
+    <span class="stat-label">Type</span>
+    <strong>{{ mime_type }}</strong>
+    <span class="hint">Compression {{ 'enabled' if compressed else 'no' }}</span>
+  </div>
+  <div>
+    <span class="stat-label">FEC</span>
+    <strong>{{ 'enabled' if fec_info.fec_enabled else 'disabled' }}</strong>
+    <span class="hint">{{ fec_info.fec_type|upper if fec_info.fec_enabled else 'No extra recovery' }}</span>
+  </div>
+  <div>
+    <span class="stat-label">Pages with hits</span>
+    <strong>{{ decode_stats.pages_with_hits }}/{{ decode_stats.pages_total }}</strong>
+    <span class="hint">Pages analyzed</span>
+  </div>
+  <div>
+    <span class="stat-label">Decoder</span>
+    <strong>{{ decode_stats.decoder_backend }}</strong>
+    <span class="hint">PDF {{ decode_stats.pdf_backend }}</span>
+  </div>
+</section>
+
+<section class="card-grid two-up">
+  <article class="card">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Summary</div>
+        <h3>Reconstructed content</h3>
+      </div>
+    </div>
+    <dl class="summary-list">
+      <div><dt>Original name</dt><dd>{{ original_name }}</dd></div>
+      <div><dt>MIME type</dt><dd>{{ mime_type }}</dd></div>
+      <div><dt>Compression enabled</dt><dd>{{ 'yes' if compressed else 'no' }}</dd></div>
+      <div><dt>File ID</dt><dd><code>{{ file_id_hex }}</code></dd></div>
+      <div><dt>Protection</dt><dd>{% if encryption_mode == 'clear' %}cleartext{% elif encryption_mode == 'password' %}password{% else %}public key{% endif %}</dd></div>
+      {% if recipient_key_id %}<div><dt>Recipient key ID</dt><dd><code>{{ recipient_key_id }}</code></dd></div>{% endif %}
+    </dl>
+  </article>
+
+  <article class="card">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Reading and recovery</div>
+        <h3>Scanning metrics</h3>
+      </div>
+    </div>
+    <dl class="summary-list">
+      <div><dt>Unique QR</dt><dd>{{ decode_stats.qr_unique }}</dd></div>
+      <div><dt>Duplicates discarded</dt><dd>{{ decode_stats.duplicates_discarded }}</dd></div>
+      <div><dt>Grid cells scanned</dt><dd>{{ decode_stats.cells_scanned }}</dd></div>
+      <div><dt>Preprocess attempts</dt><dd>{{ decode_stats.preprocess_attempts }}</dd></div>
+      {% if fec_info.fec_enabled %}
+      <div><dt>FEC type</dt><dd>{{ fec_info.fec_type|upper }}</dd></div>
+      <div><dt>FEC group</dt><dd>{{ fec_info.fec_group_size }}</dd></div>
+      <div><dt>Parity per group</dt><dd>{{ fec_info.fec_parity_count }}</dd></div>
+      <div><dt>Parity QR read</dt><dd>{{ fec_info.fec_parity_chunks }}</dd></div>
+      <div><dt>Chunks recovered via FEC</dt><dd>{{ fec_info.fec_recovered_chunks }}</dd></div>
+      {% endif %}
+    </dl>
+  </article>
+</section>
+
+
+
+{% if mime_type.startswith('audio/') %}
+<section class="card">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">Preview</div>
+      <h3>Play the voice message</h3>
+    </div>
+  </div>
+  <audio controls preload="metadata" class="voice-preview-inline" src="{{ url_for('decode.preview_restored', filename=output_name) }}"></audio>
+</section>
+{% endif %}
+
+{% if mime_type.startswith('image/') %}
+<section class="card">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">Preview</div>
+      <h3>View the reconstructed image</h3>
+    </div>
+  </div>
+  <img class="image-preview-inline" src="{{ url_for('decode.preview_restored', filename=output_name) }}" alt="Reconstructed image preview">
+</section>
+{% endif %}
+
+{% if signature_info %}
+<section class="card signature-card">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">Digital signature</div>
+      <h3>Verification successful</h3>
+    </div>
+    <span class="badge success">Signature verified</span>
+  </div>
+  <dl class="summary-list">
+    {% if signature_info.signer_label %}<div><dt>Identity</dt><dd>{{ signature_info.signer_label }}</dd></div>{% endif %}
+    <div><dt>Trust status</dt><dd>{% if signature_info.trust_status == 'self' %}my identity{% elif signature_info.trust_status == 'known_contact' %}known contact{% else %}unknown key{% endif %}</dd></div>
+    <div><dt>Signer key ID</dt><dd><code>{{ signature_info.signer_key_id }}</code></dd></div>
+    <div><dt>Signer fingerprint</dt><dd><code>{{ signature_info.signer_fingerprint }}</code></dd></div>
+  </dl>
+</section>
+{% endif %}
+{% endblock %}

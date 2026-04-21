@@ -1,0 +1,14 @@
+Flask>=3.0.0
+qrcode[pil]>=7.4.2
+reportlab>=4.0.0
+cryptography>=42.0.0
+pyzbar>=0.1.9
+Pillow>=10.0.0
+PyNaCl>=1.5.0
+
+# PDF decoding: requires poppler (pkg install poppler)
+# NO Python PDF library needed — pdftoppm is called directly
+
+# Optional FEC:
+reedsolo>=1.7.0
+waitress>=3.0.0

@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}QR FileSystem{% endblock %}
+{% block content %}
+<section class="card compact-hero">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Local · offline · printable</div>
+      <h2>Optical data transport with multiple QR codes, encryption, and signatures.</h2>
+      <p class="lead-sm">Generate A4 pages, reconstruct from PDFs, images, or camera, use local identities and exportable backups. Everything stays on your device.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge success">Layout 5×6</span>
+      <span class="badge neutral">30 QR / page</span>
+      <span class="badge neutral">Audio · photos · files</span>
+    </div>
+  </div>
+  <div class="actions hero-actions wrap">
+    <a class="button" href="{{ url_for('encode.encode_view') }}">Encode</a>
+    <a class="button secondary" href="{{ url_for('decode.decode_view') }}">Decode</a>
+    <a class="button secondary" href="{{ url_for('scan.scan_view') }}">Live camera</a>
+  </div>
+</section>
+
+<section class="action-grid action-grid-three">
+  <a class="card action-card" href="{{ url_for('encode.encode_view') }}">
+    <span class="eyebrow">Encode</span>
+    <h3>Files, audio, and photos</h3>
+    <p>A single entry point to generate QR PDFs with quick profiles or advanced settings.</p>
+  </a>
+  <a class="card action-card" href="{{ url_for('decode.decode_view') }}">
+    <span class="eyebrow">Decode</span>
+    <h3>PDFs, images, or camera</h3>
+    <p>Reconstruct the blob, then unlock only if a password or private key is actually needed.</p>
+  </a>
+  <a class="card action-card" href="{{ url_for('keys.keys_view') }}">
+    <span class="eyebrow">Identity</span>
+    <h3>Keys, cards, and backups</h3>
+    <p>Manage local identities, public identity cards, and encrypted backups or recovery sheets.</p>
+  </a>
+</section>
+
+<section class="card-grid three-up compact-cards">
+  <article class="card compact-card">
+    <div class="eyebrow">Stable</div>
+    <h3>Easy to print</h3>
+    <p>Conservative preset for everyday use, scanners, and phones.</p>
+  </article>
+  <article class="card compact-card">
+    <div class="eyebrow">Max</div>
+    <h3>Fino a 1200 B/QR</h3>
+    <p>Higher-density profile for users who want more capacity while keeping the 5×6 layout.</p>
+  </article>
+  <article class="card compact-card">
+    <div class="eyebrow">Advanced</div>
+    <h3>Only when needed</h3>
+    <p>ECC, FEC, chunk size, and recovery remain available without getting in the way.</p>
+  </article>
+</section>
+{% endblock %}

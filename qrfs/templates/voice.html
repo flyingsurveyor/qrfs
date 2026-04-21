@@ -1,0 +1,538 @@
+{% extends 'base.html' %}
+{% block title %}Voice-message QR · QR FileSystem{% endblock %}
+{% block content %}
+<section class="page-intro card subtle-card compact-intro">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Encode</div>
+      <h2>Voice-message QR</h2>
+      <p class="lead-sm">Dedicated mode inside the same encoding area. Prepare the content here, then use protection and signing as with normal files.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge success">Layout 5×6</span>
+      <span class="badge neutral">Local</span>
+    </div>
+  </div>
+  <nav class="subnav-tabs" aria-label="Encoding types">
+    <a href="{{ url_for('encode.encode_view') }}">File</a>
+    <a class="active" href="{{ url_for('encode.voice_view') }}">Audio</a>
+    <a class="" href="{{ url_for('encode.photo_view') }}">Photo</a>
+  </nav>
+</section>
+
+<form method="post" action="{{ url_for('encode.encode_view') }}" enctype="multipart/form-data" class="workflow-shell" id="voice-form">
+  <input type="hidden" name="return_to" value="voice">
+  <input type="hidden" name="preset" id="voice-preset" value="denso">
+  <input type="hidden" name="qr_ecc" id="voice-qr-ecc" value="L">
+  <input type="hidden" name="chunk_size_mode" id="voice-chunk-mode" value="1200">
+  <input type="hidden" name="fec_group_size" value="0">
+  <input type="hidden" name="fec_type" value="xor">
+  <input type="hidden" name="fec_parity_count" value="1">
+
+  <div class="workflow-main stack-lg">
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">1. Audio</div>
+          <h3>Record in the browser or upload an audio file</h3>
+        </div>
+      </div>
+
+      <div class="grid three recorder-grid">
+        <label>
+          <span>Target</span>
+          <select id="target-pages">
+            <option value="1" selected>Maximum 1 page</option>
+            <option value="3">Maximum 3 pages</option>
+          </select>
+          <small>The recording timer uses this budget as a conservative limit.</small>
+        </label>
+        <label>
+          <span>Voice quality</span>
+          <select id="voice-quality">
+            <option value="low">Compact — about 12 kb/s</option>
+            <option value="normal" selected>Normal — about 16 kb/s</option>
+            <option value="high">High — about 24 kb/s</option>
+          </select>
+          <small>Approximate values: they depend on the browser and actual codec.</small>
+        </label>
+        <label>
+          <span>QR profile</span>
+          <select id="voice-profile">
+            <option value="max" selected>Practical max — ECC L + 1200 B/QR</option>
+            <option value="stable">Stable — ECC M + standard preset</option>
+          </select>
+          <small>Stable reads more easily, Max holds more.</small>
+        </label>
+      </div>
+
+      <div class="voice-actions-row">
+        <button type="button" class="button" id="voice-record-btn">● Record</button>
+        <button type="button" class="button secondary" id="voice-stop-btn" disabled>Stop</button>
+        <span class="badge neutral" id="voice-timer">00:00 / --:--</span>
+        <span class="badge neutral" id="voice-status">Ready</span>
+      </div>
+
+      <div class="voice-meter-wrap">
+        <div class="voice-meter"><div class="voice-meter-fill" id="voice-meter-fill"></div></div>
+      </div>
+
+      <div class="grid two">
+        <div class="callout info" id="voice-budget-box">
+          <strong>Estimated budget.</strong>
+          <div id="voice-budget-text">With the current profile you can comfortably stay within one page for a short voice note.</div>
+        </div>
+        <div class="callout neutral" id="voice-file-box">
+          <strong>File ready.</strong>
+          <div id="voice-file-text">No audio selected or recorded.</div>
+        </div>
+      </div>
+
+      <label>
+        <span>Or upload an existing audio file</span>
+        <input type="file" name="file" id="voice-file-input" accept="audio/*">
+        <small>If you record in the browser, the selected file will be replaced by the finished recording.</small>
+      </label>
+
+      <audio id="voice-preview" controls preload="metadata" class="voice-preview is-hidden"></audio>
+      <p class="hint" id="voice-warning"></p>
+    </section>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">2. Protection</div>
+          <h3>How do you want to protect the voice message</h3>
+        </div>
+      </div>
+      <div class="grid two">
+        <label>
+          <span>Content protection</span>
+          <select name="encryption_mode" id="encryption_mode">
+            <option value="clear">Cleartext</option>
+            <option value="password" selected>Password</option>
+            <option value="pubkey">Recipient public key</option>
+          </select>
+        </label>
+        <details class="help-pop"><summary>?</summary><div>Cleartext does not encrypt the content, but you can still sign it. Signature verification does not require the master password.</div></details>
+      </div>
+
+      <div id="password-panel" class="stack-sm">
+        <div class="grid two">
+          <label>
+            <span>Password</span>
+            <input type="password" name="password" minlength="14" placeholder="Long, non-trivial passphrase">
+          </label>
+          <label>
+            <span>Confirm password</span>
+            <input type="password" name="password_confirm" minlength="14" placeholder="Repeat the same password">
+          </label>
+        </div>
+      </div>
+
+      <div id="pubkey-panel" class="stack-sm is-hidden">
+        <div class="grid two">
+          <label>
+            <span>From contacts</span>
+            <select name="contact_id">
+              <option value="">-- None --</option>
+              {% if my_identity %}
+              <option value="__self__">🔑 Myself ({{ my_identity.encryption_key_id }})</option>
+              {% endif %}
+              {% for contact in contacts %}
+              <option value="{{ contact.id }}">{{ contact.name }} — {{ contact.key_id }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <details class="help-pop"><summary>?</summary><div>For regular recipients, use contacts. Alternatively, paste the X25519 public key directly.</div></details>
+        </div>
+        <label>
+          <span>X25519 public key / QR JSON payload</span>
+          <textarea name="public_key" rows="3" placeholder="Paste key or payload"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">3. Signature</div>
+          <h3>Optional digital signature</h3>
+        </div>
+      </div>
+      {% if has_identity %}
+      <div class="grid two">
+        <label class="toggle-card">
+          <input type="checkbox" name="sign_with_identity" id="sign_with_identity" checked>
+          <span>
+            <strong>Sign with my identity</strong>
+            <small>The recipient will be able to verify who produced the voice message.</small>
+          </span>
+        </label>
+        <div id="signing-identity-panel">
+          <label>
+            <span>Master password</span>
+            <input type="password" name="master_password" placeholder="Enter to unlock the signing key">
+          </label>
+        </div>
+      </div>
+      {% else %}
+      <div class="callout warning">
+        <strong>No identity available.</strong> <a href="{{ url_for('keys.keys_view') }}">Generate an identity</a> to sign with one click.
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">4. Output</div>
+          <h3>Generate the QR package</h3>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="callout success">
+          <strong>PDF always generated.</strong> In this mode extra compression is disabled: the audio is already in a compact format.
+        </div>
+        <label class="toggle-card">
+          <input type="checkbox" name="generate_png_zip">
+          <span>
+            <strong>Also generate PNG ZIP</strong>
+            <small>Optional. For voice messages, the PDF is usually enough.</small>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="button" type="submit" id="voice-submit" disabled>Generate voice-message QR</button>
+      <a class="button secondary" href="{{ url_for('encode.encode_view') }}">Open file encoding</a>
+    </div>
+  </div>
+
+  <aside class="workflow-side stack-md">
+    <section class="card sticky-card">
+      <div class="eyebrow">Live estimate</div>
+      <h3>Message budget</h3>
+      <dl class="summary-list">
+        <div><dt>QR profile</dt><dd id="summary-profile">Practical max</dd></div>
+        <div><dt>Capacity per page</dt><dd id="summary-page-capacity">~36.000 B</dd></div>
+        <div><dt>Target pages</dt><dd id="summary-pages">1</dd></div>
+        <div><dt>Audio bitrate</dt><dd id="summary-bitrate">16 kb/s</dd></div>
+        <div><dt>Recommended duration</dt><dd id="summary-duration">~00:18</dd></div>
+        <div><dt>Protection</dt><dd id="summary-encryption">Password</dd></div>
+      </dl>
+      <div class="callout neutral" id="summary-note">Record, stop when the timer suggests, then generate the QR PDF. If the browser produces a file a bit larger than expected, the budget will warn you.</div>
+    </section>
+
+    <section class="card subtle-card">
+      <div class="eyebrow">Tips</div>
+      <ul class="clean-list">
+        <li><strong>Short voice:</strong> 1 page is ideal for quick messages.</li>
+        <li><strong>Longer messages:</strong> switch to 3 pages before increasing the quality.</li>
+        <li><strong>For extra margin:</strong> use Practical max if your print-and-scan workflow is already well tested.</li>
+      </ul>
+    </section>
+  </aside>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+  const PROFILES = {
+    max: {
+      label: 'Practical max',
+      pageBytes: 36000,
+      qrEcc: 'L',
+      preset: 'denso',
+      chunkMode: '1200',
+      note: 'Maximum practical capacity per page: ideal for fitting voice into 1 or 3 pages.'
+    },
+    stable: {
+      label: 'Stable',
+      pageBytes: 19500,
+      qrEcc: 'M',
+      preset: 'standard',
+      chunkMode: 'preset',
+      note: 'Easier to read, but with a smaller audio budget per page.'
+    }
+  };
+
+  const QUALITIES = {
+    low: { label: '12 kb/s', bitrate: 12000 },
+    normal: { label: '16 kb/s', bitrate: 16000 },
+    high: { label: '24 kb/s', bitrate: 24000 }
+  };
+
+  const HEADROOM = 0.88;
+  const pageSelect = document.getElementById('target-pages');
+  const qualitySelect = document.getElementById('voice-quality');
+  const profileSelect = document.getElementById('voice-profile');
+  const encryptionSelect = document.getElementById('encryption_mode');
+  const passwordPanel = document.getElementById('password-panel');
+  const pubkeyPanel = document.getElementById('pubkey-panel');
+  const signToggle = document.getElementById('sign_with_identity');
+  const signingPanel = document.getElementById('signing-identity-panel');
+  const fileInput = document.getElementById('voice-file-input');
+  const submitBtn = document.getElementById('voice-submit');
+  const preview = document.getElementById('voice-preview');
+  const warning = document.getElementById('voice-warning');
+  const statusEl = document.getElementById('voice-status');
+  const timerEl = document.getElementById('voice-timer');
+  const meterFill = document.getElementById('voice-meter-fill');
+  const budgetText = document.getElementById('voice-budget-text');
+  const fileText = document.getElementById('voice-file-text');
+  const budgetBox = document.getElementById('voice-budget-box');
+  const summaryProfile = document.getElementById('summary-profile');
+  const summaryCapacity = document.getElementById('summary-page-capacity');
+  const summaryPages = document.getElementById('summary-pages');
+  const summaryBitrate = document.getElementById('summary-bitrate');
+  const summaryDuration = document.getElementById('summary-duration');
+  const summaryEncryption = document.getElementById('summary-encryption');
+  const summaryNote = document.getElementById('summary-note');
+  const hiddenPreset = document.getElementById('voice-preset');
+  const hiddenQrEcc = document.getElementById('voice-qr-ecc');
+  const hiddenChunkMode = document.getElementById('voice-chunk-mode');
+  const recordBtn = document.getElementById('voice-record-btn');
+  const stopBtn = document.getElementById('voice-stop-btn');
+
+  let mediaRecorder = null;
+  let mediaStream = null;
+  let audioChunks = [];
+  let recorderTimer = null;
+  let meterTimer = null;
+  let startedAt = 0;
+  let maxSeconds = 0;
+  let currentAudioUrl = null;
+  let audioContext = null;
+  let analyser = null;
+  let dataArray = null;
+  let sourceNode = null;
+
+  function currentProfile() { return PROFILES[profileSelect.value] || PROFILES.max; }
+  function currentQuality() { return QUALITIES[qualitySelect.value] || QUALITIES.normal; }
+  function currentTargetPages() { return Number(pageSelect.value || '1'); }
+  function budgetBytes() { return Math.floor(currentProfile().pageBytes * currentTargetPages() * HEADROOM); }
+  function formatTime(seconds) {
+    const s = Math.max(0, Math.floor(seconds));
+    const mm = String(Math.floor(s / 60)).padStart(2, '0');
+    const ss = String(s % 60).padStart(2, '0');
+    return `${mm}:${ss}`;
+  }
+  function formatBytes(bytes) {
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MiB`;
+    if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+    return `${bytes} B`;
+  }
+  function estimatedPagesForBytes(bytes) {
+    const perPageBudget = Math.floor(currentProfile().pageBytes * HEADROOM);
+    return Math.max(1, Math.ceil(bytes / Math.max(1, perPageBudget)));
+  }
+  function chooseMimeType() {
+    const preferred = [
+      'audio/webm;codecs=opus',
+      'audio/ogg;codecs=opus',
+      'audio/webm',
+      'audio/ogg'
+    ];
+    for (const mime of preferred) {
+      if (window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(mime)) {
+        return mime;
+      }
+    }
+    return '';
+  }
+  function extensionForMime(mime) {
+    if (mime.includes('ogg')) return 'ogg';
+    if (mime.includes('webm')) return 'webm';
+    return 'bin';
+  }
+
+  function syncPanels() {
+    const mode = encryptionSelect.value;
+    passwordPanel.classList.toggle('is-hidden', mode !== 'password');
+    pubkeyPanel.classList.toggle('is-hidden', mode !== 'pubkey');
+    summaryEncryption.textContent = mode === 'clear' ? 'Cleartext' : (mode === 'password' ? 'Password' : 'Public key');
+    if (signToggle && signingPanel) signingPanel.classList.toggle('is-hidden', !signToggle.checked);
+  }
+
+  function setAudioFile(file, sourceLabel) {
+    if (!file) return;
+    try {
+      const dt = new DataTransfer();
+      dt.items.add(file);
+      fileInput.files = dt.files;
+    } catch (err) {
+      warning.textContent = 'The browser does not allow automatically injecting the recording into the form. Use “upload audio file” as a fallback.';
+    }
+    if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+    currentAudioUrl = URL.createObjectURL(file);
+    preview.src = currentAudioUrl;
+    preview.classList.remove('is-hidden');
+    const estimatePages = estimatedPagesForBytes(file.size);
+    const fits = file.size <= budgetBytes();
+    fileText.textContent = `${sourceLabel}: ${file.name} · ${formatBytes(file.size)} · stima ${estimatePages} page(s)`;
+    warning.textContent = fits ? '' : 'This audio exceeds the budget for the chosen mode. Reduce the duration, lower the quality, or switch to 3 pages.';
+    budgetBox.classList.toggle('warning', !fits);
+    budgetBox.classList.toggle('info', fits);
+    submitBtn.disabled = !fits;
+  }
+
+  function refreshBudgetUi() {
+    const profile = currentProfile();
+    const quality = currentQuality();
+    hiddenPreset.value = profile.preset;
+    hiddenQrEcc.value = profile.qrEcc;
+    hiddenChunkMode.value = profile.chunkMode;
+    maxSeconds = Math.max(4, Math.floor((budgetBytes() * 8) / quality.bitrate));
+
+    summaryProfile.textContent = profile.label;
+    summaryCapacity.textContent = `~${profile.pageBytes.toLocalString('it-IT')} B`;
+    summaryPages.textContent = String(currentTargetPages());
+    summaryBitrate.textContent = quality.label;
+    summaryDuration.textContent = `~${formatTime(maxSeconds)}`;
+    summaryNote.textContent = profile.note;
+
+    budgetText.textContent = `With ${profile.label}, ${currentTargetPages()} page(s), and ${quality.label}, you have a conservative budget of about ${formatBytes(budgetBytes())}. Recommended duration: ${formatTime(maxSeconds)}.`;
+    if (fileInput.files && fileInput.files[0]) {
+      setAudioFile(fileInput.files[0], 'Audio ready');
+    } else {
+      submitBtn.disabled = true;
+      fileText.textContent = 'No audio selected or recorded.';
+      warning.textContent = '';
+      preview.classList.add('is-hidden');
+    }
+  }
+
+  function stopVisualizers() {
+    if (recorderTimer) { clearInterval(recorderTimer); recorderTimer = null; }
+    if (meterTimer) { clearInterval(meterTimer); meterTimer = null; }
+    meterFill.style.width = '0%';
+    if (sourceNode) { try { sourceNode.disconnect(); } catch (_) {} sourceNode = null; }
+    if (audioContext) { audioContext.close().catch(() => {}); audioContext = null; }
+    analyser = null;
+    dataArray = null;
+  }
+
+  async function setupMeter(stream) {
+    if (!window.AudioContext) return;
+    try {
+      audioContext = new AudioContext();
+      analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      dataArray = new Uint8Array(analyser.frequencyBinCount);
+      sourceNode = audioContext.createMediaStreamSource(stream);
+      sourceNode.connect(analyser);
+      meterTimer = setInterval(() => {
+        if (!analyser || !dataArray) return;
+        analyser.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) sum += dataArray[i];
+        const level = Math.min(100, Math.round((sum / dataArray.length) / 1.8));
+        meterFill.style.width = `${level}%`;
+      }, 120);
+    } catch (_) {}
+  }
+
+  async function startRecording() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !window.MediaRecorder) {
+      warning.textContent = 'This browser does not support live audio recording. Use audio-file upload.';
+      return;
+    }
+    if (mediaRecorder && mediaRecorder.state === 'recording') return;
+    warning.textContent = '';
+    const mimeType = chooseMimeType();
+    mediaStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      }
+    });
+    await setupMeter(mediaStream);
+    audioChunks = [];
+    const options = {
+      audioBitsPerSecond: currentQuality().bitrate,
+    };
+    if (mimeType) options.mimeType = mimeType;
+    mediaRecorder = new MediaRecorder(mediaStream, options);
+    mediaRecorder.addEventListener('dataavailable', (event) => {
+      if (event.data && event.data.size > 0) audioChunks.push(event.data);
+    });
+    mediaRecorder.addEventListener('stop', () => {
+      const actualMime = mediaRecorder.mimeType || mimeType || 'audio/webm';
+      const ext = extensionForMime(actualMime);
+      const blob = new Blob(audioChunks, { type: actualMime });
+      const file = new File([blob], `voice_message_${Date.now()}.${ext}`, { type: actualMime });
+      setAudioFile(file, 'Recording ready');
+      statusEl.textContent = 'Recording ready';
+      timerEl.textContent = `${formatTime(maxSeconds)} / ${formatTime(maxSeconds)}`;
+      recordBtn.disabled = false;
+      stopBtn.disabled = true;
+      stopVisualizers();
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+    });
+    startedAt = Date.now();
+    recordBtn.disabled = true;
+    stopBtn.disabled = false;
+    statusEl.textContent = 'Recording in progress';
+    mediaRecorder.start(1000);
+    recorderTimer = setInterval(() => {
+      const elapsed = (Date.now() - startedAt) / 1000;
+      timerEl.textContent = `${formatTime(elapsed)} / ${formatTime(maxSeconds)}`;
+      if (elapsed >= maxSeconds && mediaRecorder && mediaRecorder.state === 'recording') {
+        statusEl.textContent = 'Limite raggiunto, arresto…';
+        stopRecording();
+      }
+    }, 200);
+  }
+
+  function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state === 'recording') mediaRecorder.stop();
+  }
+
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) {
+      setAudioFile(fileInput.files[0], 'Selected audio');
+    } else {
+      preview.classList.add('is-hidden');
+      submitBtn.disabled = true;
+    }
+  });
+  profileSelect.addEventListener('change', refreshBudgetUi);
+  qualitySelect.addEventListener('change', refreshBudgetUi);
+  pageSelect.addEventListener('change', refreshBudgetUi);
+  encryptionSelect.addEventListener('change', syncPanels);
+  if (signToggle) signToggle.addEventListener('change', syncPanels);
+  recordBtn.addEventListener('click', async () => {
+    try {
+      await startRecording();
+    } catch (err) {
+      warning.textContent = 'Recording not started: ' + (err && err.message ? err.message : err);
+      recordBtn.disabled = false;
+      stopBtn.disabled = true;
+      statusEl.textContent = 'Error';
+      stopVisualizers();
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+    }
+  });
+  stopBtn.addEventListener('click', stopRecording);
+  window.addEventListener('beforeunload', () => {
+    if (currentAudioUrl) URL.revokeObjectURL(currentAudioUrl);
+    if (mediaStream) mediaStream.getTracks().forEach(track => track.stop());
+    stopVisualizers();
+  });
+
+  syncPanels();
+  refreshBudgetUi();
+})();
+</script>
+{% endblock %}

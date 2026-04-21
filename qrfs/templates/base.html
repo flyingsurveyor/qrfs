@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}QR FileSystem{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block extra_head %}{% endblock %}
+</head>
+<body class="app-body {% block body_class %}{% endblock %}">
+  <header class="appbar">
+    <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open menu" aria-controls="app-drawer" aria-expanded="false">☰</button>
+    <a class="app-brand" href="{{ url_for('index') }}">
+      <span class="brand-mark brand-mark-small">Q</span>
+      <span class="brand-name">QR FileSystem</span>
+    </a>
+    <div class="appbar-spacer"></div>
+    {% block appbar_actions %}{% endblock %}
+  </header>
+
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="drawer" id="app-drawer" aria-hidden="true">
+    <div class="drawer-head">
+      <div>
+        <div class="eyebrow">Menu</div>
+        <strong>QR FileSystem</strong>
+      </div>
+      <button class="menu-toggle close-toggle" id="menu-close" type="button" aria-label="Close menu">✕</button>
+    </div>
+    <nav class="drawer-nav" aria-label="Main navigation">
+      <a class="{% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Home</a>
+      <a class="{% if request.endpoint and request.endpoint.startswith('encode.') %}active{% endif %}" href="{{ url_for('encode.encode_view') }}">Encode</a>
+      <a class="{% if request.endpoint and request.endpoint.startswith('decode.') %}active{% endif %}" href="{{ url_for('decode.decode_view') }}">Decode</a>
+      <a class="{% if request.endpoint and request.endpoint.startswith('scan.') %}active{% endif %}" href="{{ url_for('scan.scan_view') }}">Live camera</a>
+      <a class="{% if request.endpoint and request.endpoint.startswith('keys.') %}active{% endif %}" href="{{ url_for('keys.keys_view') }}">Keys</a>
+      <a class="{% if request.endpoint and request.endpoint.startswith('contacts.') %}active{% endif %}" href="{{ url_for('contacts.contacts_view') }}">Contacts</a>
+    </nav>
+    <div class="drawer-footer">
+      <a class="drawer-footer-link {% if request.endpoint == 'decode.rescue_view' %}active{% endif %}" href="{{ url_for('decode.rescue_view') }}">Rescue</a>
+      <a class="drawer-footer-link {% if request.endpoint and request.endpoint.startswith('testbench.') %}active{% endif %}" href="{{ url_for('testbench.testbench_view') }}">Testbench</a>
+      <div class="hint">Local · offline · printable</div>
+    </div>
+  </aside>
+
+  <main class="container app-main">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <section class="flash-wrap">
+          {% for category, message in messages %}
+            <div class="flash {{ category }}">{{ message }}</div>
+          {% endfor %}
+        </section>
+      {% endif %}
+    {% endwith %}
+    <div class="page-content">
+      {% block content %}{% endblock %}
+    </div>
+  </main>
+
+  <script>
+  (function () {
+    const body = document.body;
+    const drawer = document.getElementById('app-drawer');
+    const backdrop = document.getElementById('drawer-backdrop');
+    const openBtn = document.getElementById('menu-toggle');
+    const closeBtn = document.getElementById('menu-close');
+
+    if (drawer && backdrop && openBtn) {
+      function openDrawer() {
+        drawer.classList.add('open');
+        backdrop.hidden = false;
+        body.classList.add('drawer-open');
+        openBtn.setAttribute('aria-expanded', 'true');
+        drawer.setAttribute('aria-hidden', 'false');
+      }
+      function closeDrawer() {
+        drawer.classList.remove('open');
+        backdrop.hidden = true;
+        body.classList.remove('drawer-open');
+        openBtn.setAttribute('aria-expanded', 'false');
+        drawer.setAttribute('aria-hidden', 'true');
+      }
+      openBtn.addEventListener('click', openDrawer);
+      if (closeBtn) closeBtn.addEventListener('click', closeDrawer);
+      backdrop.addEventListener('click', closeDrawer);
+      drawer.querySelectorAll('a').forEach(a => a.addEventListener('click', closeDrawer));
+      window.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeDrawer(); });
+    }
+
+    const helpPops = Array.from(document.querySelectorAll('.help-pop'));
+    if (!helpPops.length) return;
+
+    function closeAllHelp(exceptEl) {
+      helpPops.forEach(item => {
+        if (item !== exceptEl) item.removeAttribute('open');
+      });
+    }
+
+    function positionHelp(details) {
+      const popup = details.querySelector(':scope > div');
+      const summary = details.querySelector(':scope > summary');
+      if (!popup || !summary || !details.open) return;
+      const rect = summary.getBoundingClientRect();
+      const margin = 10;
+      const popupWidth = Math.min(340, window.innerWidth - (margin * 2));
+      popup.style.position = 'fixed';
+      popup.style.width = popupWidth + 'px';
+      popup.style.maxWidth = `calc(100vw - ${margin * 2}px)`;
+      popup.style.zIndex = '1405';
+      let left = Math.min(rect.right - popupWidth, window.innerWidth - popupWidth - margin);
+      left = Math.max(margin, left);
+      let top = rect.bottom + 8;
+      const estimatedHeight = Math.min(260, popup.scrollHeight || 180);
+      if (top + estimatedHeight > window.innerHeight - margin && rect.top > estimatedHeight + 24) {
+        top = Math.max(margin, rect.top - estimatedHeight - 8);
+      }
+      popup.style.left = left + 'px';
+      popup.style.top = top + 'px';
+      popup.style.right = 'auto';
+    }
+
+    helpPops.forEach(details => {
+      details.addEventListener('toggle', () => {
+        if (details.open) {
+          closeAllHelp(details);
+          positionHelp(details);
+        }
+      });
+    });
+
+    document.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (target.closest('.help-pop')) return;
+      closeAllHelp(null);
+    });
+
+    window.addEventListener('scroll', () => {
+      helpPops.forEach(item => { if (item.open) positionHelp(item); });
+    }, { passive: true });
+    window.addEventListener('resize', () => {
+      helpPops.forEach(item => { if (item.open) positionHelp(item); });
+    });
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAllHelp(null);
+    });
+  })();
+  </script>
+  {% block extra_scripts %}{% endblock %}
+</body>
+</html>

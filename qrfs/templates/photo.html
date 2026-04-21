@@ -1,0 +1,558 @@
+{% extends 'base.html' %}
+{% block title %}Photo QR · QR FileSystem{% endblock %}
+{% block content %}
+<section class="page-intro card subtle-card compact-intro">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Encode</div>
+      <h2>Photo QR</h2>
+      <p class="lead-sm">Dedicated mode inside the same encoding area. Prepare the content here, then use protection and signing as with normal files.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge success">Layout 5×6</span>
+      <span class="badge neutral">Local</span>
+    </div>
+  </div>
+  <nav class="subnav-tabs" aria-label="Encoding types">
+    <a href="{{ url_for('encode.encode_view') }}">File</a>
+    <a class="" href="{{ url_for('encode.voice_view') }}">Audio</a>
+    <a class="active" href="{{ url_for('encode.photo_view') }}">Photo</a>
+  </nav>
+</section>
+
+<form method="post" action="{{ url_for('encode.encode_view') }}" enctype="multipart/form-data" class="workflow-shell" id="photo-form">
+  <input type="hidden" name="return_to" value="photo">
+  <input type="hidden" name="preset" id="photo-preset" value="denso">
+  <input type="hidden" name="qr_ecc" id="photo-qr-ecc" value="L">
+  <input type="hidden" name="chunk_size_mode" id="photo-chunk-mode" value="1200">
+  <input type="hidden" name="fec_group_size" value="0">
+  <input type="hidden" name="fec_type" value="xor">
+  <input type="hidden" name="fec_parity_count" value="1">
+  <div class="workflow-main stack-lg">
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">1. Image</div>
+          <h3>Take or upload a photo, then let it fit within the budget</h3>
+        </div>
+      </div>
+
+      <div class="grid three recorder-grid">
+        <label>
+          <span>Target</span>
+          <select id="target-pages">
+            <option value="1" selected>Maximum 1 page</option>
+            <option value="3">Maximum 3 pages</option>
+          </select>
+          <small>Preprocessing tries to stay within this budget.</small>
+        </label>
+        <label>
+          <span>Image profile</span>
+          <select id="photo-mode">
+            <option value="photo" selected>Compact photo</option>
+            <option value="document">Readable document</option>
+            <option value="bw">Ultra-compact B/W</option>
+          </select>
+          <small>Document favors text and contrast; B/W pushes compression harder.</small>
+        </label>
+        <label>
+          <span>QR profile</span>
+          <select id="photo-profile">
+            <option value="max" selected>Practical max — ECC L + 1200 B/QR</option>
+            <option value="stable">Stable — ECC M + standard preset</option>
+          </select>
+          <small>Stable reads more easily, Max holds more.</small>
+        </label>
+      </div>
+
+      <div class="photo-controls-row">
+        <button type="button" class="button" id="photo-pick-btn">Choose image</button>
+        <button type="button" class="button secondary" id="photo-capture-btn">Take photo</button>
+        <span class="badge neutral" id="photo-status">No image loaded</span>
+      </div>
+
+      <div class="photo-source-inputs">
+        <input type="file" id="photo-source-input" accept="image/*">
+        <input type="file" id="photo-camera-input" accept="image/*" capture="environment">
+        <input type="file" name="file" id="photo-processed-file" accept="image/*">
+      </div>
+
+      <div class="photo-stage is-hidden" id="photo-stage">
+        <div class="photo-preview-shell">
+          <div class="photo-preview-card">
+            <div class="eyebrow">Processed preview</div>
+            <img id="photo-preview" alt="Processed photo preview">
+          </div>
+          <div class="photo-meta stack-sm">
+            <div class="callout info" id="photo-budget-box">
+              <strong>Image budget.</strong>
+              <div id="photo-budget-text">Select a photo to see the preprocessing estimate.</div>
+            </div>
+            <dl class="summary-list">
+              <div><dt>Source</dt><dd id="photo-source-summary">—</dd></div>
+              <div><dt>Output dimensions</dt><dd id="photo-dimensions">—</dd></div>
+              <div><dt>Format</dt><dd id="photo-format">—</dd></div>
+              <div><dt>File size</dt><dd id="photo-size">—</dd></div>
+              <div><dt>Estimated pages</dt><dd id="photo-pages-estimate">—</dd></div>
+            </dl>
+          </div>
+        </div>
+        <p class="hint" id="photo-warning"></p>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">2. Protection</div>
+          <h3>How do you want to protect the photo</h3>
+        </div>
+      </div>
+      <div class="grid two">
+        <label>
+          <span>Content protection</span>
+          <select name="encryption_mode" id="encryption_mode">
+            <option value="clear">Cleartext</option>
+            <option value="password" selected>Password</option>
+            <option value="pubkey">Recipient public key</option>
+          </select>
+        </label>
+        <div class="callout neutral">
+          <strong>Practical note:</strong> a cleartext photo can still be <strong>signed</strong>. Signature verification does not require the master password if the content remains unencrypted.
+        </div>
+      </div>
+
+      <div id="password-panel" class="stack-sm">
+        <div class="grid two">
+          <label>
+            <span>Password</span>
+            <input type="password" name="password" minlength="14" placeholder="Long, non-trivial passphrase">
+          </label>
+          <label>
+            <span>Confirm password</span>
+            <input type="password" name="password_confirm" minlength="14" placeholder="Repeat the same password">
+          </label>
+        </div>
+      </div>
+
+      <div id="pubkey-panel" class="stack-sm is-hidden">
+        <div class="grid two">
+          <label>
+            <span>From contacts</span>
+            <select name="contact_id">
+              <option value="">-- None --</option>
+              {% if my_identity %}
+              <option value="__self__">🔑 Myself ({{ my_identity.encryption_key_id }})</option>
+              {% endif %}
+              {% for contact in contacts %}
+              <option value="{{ contact.id }}">{{ contact.name }} — {{ contact.key_id }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <div class="callout info">
+            <strong>Quick choice:</strong> use contacts for regular recipients or paste an X25519 public key below.
+          </div>
+        </div>
+        <label>
+          <span>X25519 public key / QR JSON payload</span>
+          <textarea name="public_key" rows="3" placeholder="Paste key or payload"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">3. Signature</div>
+          <h3>Optional digital signature</h3>
+        </div>
+      </div>
+      {% if has_identity %}
+      <div class="grid two">
+        <label class="toggle-card">
+          <input type="checkbox" name="sign_with_identity" id="sign_with_identity" checked>
+          <span>
+            <strong>Sign with my identity</strong>
+            <small>The recipient will be able to verify who produced the photo or photographed document.</small>
+          </span>
+        </label>
+        <div id="signing-identity-panel">
+          <label>
+            <span>Master password</span>
+            <input type="password" name="master_password" placeholder="Enter to unlock the signing key">
+          </label>
+        </div>
+      </div>
+      {% else %}
+      <div class="callout warning">
+        <strong>No identity available.</strong> <a href="{{ url_for('keys.keys_view') }}">Generate an identity</a> to sign with one click.
+      </div>
+      {% endif %}
+    </section>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">4. Output</div>
+          <h3>Generate the QR package</h3>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="callout success">
+          <strong>PDF always generated.</strong> The photo is already compressed and adapted in the browser: additional container compression stays disabled.
+        </div>
+        <label class="toggle-card">
+          <input type="checkbox" name="generate_png_zip">
+          <span>
+            <strong>Also generate PNG ZIP</strong>
+            <small>Optional. For quick photos and documents, the PDF is often enough.</small>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <div class="actions">
+      <button class="button" type="submit" id="photo-submit" disabled>Generate photo QR</button>
+      <a class="button secondary" href="{{ url_for('encode.encode_view') }}">Open file encoding</a>
+      <a class="button secondary" href="{{ url_for('encode.voice_view') }}">Voice-message QR</a>
+    </div>
+  </div>
+
+  <aside class="workflow-side stack-md">
+    <section class="card sticky-card">
+      <div class="eyebrow">Live estimate</div>
+      <h3>Image budget</h3>
+      <dl class="summary-list">
+        <div><dt>QR profile</dt><dd id="summary-profile">Practical max</dd></div>
+        <div><dt>Capacity per page</dt><dd id="summary-page-capacity">~36.000 B</dd></div>
+        <div><dt>Target pages</dt><dd id="summary-pages">1</dd></div>
+        <div><dt>Photo profile</dt><dd id="summary-mode">Compact photo</dd></div>
+        <div><dt>Max preprocess side</dt><dd id="summary-dimension">~1600 px</dd></div>
+        <div><dt>Protection</dt><dd id="summary-encryption">Password</dd></div>
+      </dl>
+      <div class="callout neutral" id="summary-note">Take or upload a photo, let the browser compress it within the budget, then generate the QR PDF. If the image stays too large, the budget tells you immediately.</div>
+    </section>
+
+    <section class="card subtle-card">
+      <div class="eyebrow">Tips</div>
+      <ul class="clean-list">
+        <li><strong>Compact photo:</strong> ideal for quick images and general scenes.</li>
+        <li><strong>Readable document:</strong> better for photographed pages, receipts, whiteboards, or notes.</li>
+        <li><strong>Ultra-compact B/W:</strong> useful when you need to fit very simple content into as few pages as possible.</li>
+      </ul>
+    </section>
+  </aside>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(() => {
+  const PROFILES = {
+    max: {
+      label: 'Practical max',
+      pageBytes: 36000,
+      qrEcc: 'L',
+      preset: 'denso',
+      chunkMode: '1200',
+      note: 'Maximum practical capacity per page: ideal for compressing quick photos and small photographed documents.'
+    },
+    stable: {
+      label: 'Stable',
+      pageBytes: 19500,
+      qrEcc: 'M',
+      preset: 'standard',
+      chunkMode: 'preset',
+      note: 'Easier to read, but with a much smaller image budget per page.'
+    }
+  };
+
+  const MODES = {
+    photo: {
+      label: 'Compact photo',
+      mime: 'image/webp',
+      quality: 0.78,
+      minQuality: 0.48,
+      maxDim1: 1600,
+      maxDim3: 2200,
+      grayscale: false,
+      threshold: false,
+    },
+    document: {
+      label: 'Readable document',
+      mime: 'image/jpeg',
+      quality: 0.76,
+      minQuality: 0.46,
+      maxDim1: 1700,
+      maxDim3: 2400,
+      grayscale: true,
+      threshold: false,
+    },
+    bw: {
+      label: 'Ultra-compact B/W',
+      mime: 'image/jpeg',
+      quality: 0.70,
+      minQuality: 0.38,
+      maxDim1: 1800,
+      maxDim3: 2500,
+      grayscale: true,
+      threshold: true,
+    }
+  };
+
+  const HEADROOM = 0.88;
+  const pageSelect = document.getElementById('target-pages');
+  const modeSelect = document.getElementById('photo-mode');
+  const profileSelect = document.getElementById('photo-profile');
+  const encryptionSelect = document.getElementById('encryption_mode');
+  const passwordPanel = document.getElementById('password-panel');
+  const pubkeyPanel = document.getElementById('pubkey-panel');
+  const signToggle = document.getElementById('sign_with_identity');
+  const signingPanel = document.getElementById('signing-identity-panel');
+  const sourceInput = document.getElementById('photo-source-input');
+  const cameraInput = document.getElementById('photo-camera-input');
+  const processedInput = document.getElementById('photo-processed-file');
+  const pickBtn = document.getElementById('photo-pick-btn');
+  const captureBtn = document.getElementById('photo-capture-btn');
+  const submitBtn = document.getElementById('photo-submit');
+  const photoStage = document.getElementById('photo-stage');
+  const preview = document.getElementById('photo-preview');
+  const statusEl = document.getElementById('photo-status');
+  const budgetText = document.getElementById('photo-budget-text');
+  const budgetBox = document.getElementById('photo-budget-box');
+  const sourceSummary = document.getElementById('photo-source-summary');
+  const dimensionsEl = document.getElementById('photo-dimensions');
+  const formatEl = document.getElementById('photo-format');
+  const sizeEl = document.getElementById('photo-size');
+  const pagesEstimateEl = document.getElementById('photo-pages-estimate');
+  const warningEl = document.getElementById('photo-warning');
+  const summaryProfile = document.getElementById('summary-profile');
+  const summaryCapacity = document.getElementById('summary-page-capacity');
+  const summaryPages = document.getElementById('summary-pages');
+  const summaryMode = document.getElementById('summary-mode');
+  const summaryDimension = document.getElementById('summary-dimension');
+  const summaryEncryption = document.getElementById('summary-encryption');
+  const summaryNote = document.getElementById('summary-note');
+  const hiddenPreset = document.getElementById('photo-preset');
+  const hiddenQrEcc = document.getElementById('photo-qr-ecc');
+  const hiddenChunkMode = document.getElementById('photo-chunk-mode');
+
+  let currentObjectUrl = null;
+  let currentOutput = null;
+
+  function currentProfile() { return PROFILES[profileSelect.value] || PROFILES.max; }
+  function currentMode() { return MODES[modeSelect.value] || MODES.photo; }
+  function currentTargetPages() { return Number(pageSelect.value || '1'); }
+  function budgetBytes() { return Math.floor(currentProfile().pageBytes * currentTargetPages() * HEADROOM); }
+  function bytesPerPage() { return Math.floor(currentProfile().pageBytes * HEADROOM); }
+
+  function formatBytes(bytes) {
+    if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(2)} MiB`;
+    if (bytes >= 1024) return `${(bytes / 1024).toFixed(1)} KiB`;
+    return `${bytes} B`;
+  }
+
+  function estimatedPagesForBytes(bytes) {
+    return Math.max(1, Math.ceil(bytes / Math.max(1, bytesPerPage())));
+  }
+
+  function canvasToBlob(canvas, mimeType, quality) {
+    return new Promise((resolve) => {
+      canvas.toBlob((blob) => resolve(blob), mimeType, quality);
+    });
+  }
+
+  function loadImageFromFile(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => resolve({ img, url });
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        reject(new Error("Unable to read the selected image."));
+      };
+      img.src = url;
+    });
+  }
+
+  function applyPixels(ctx, width, height, mode) {
+    if (!mode.grayscale && !mode.threshold) return;
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      let luminance = Math.round(0.2126 * r + 0.7152 * g + 0.0722 * b);
+      if (mode.threshold) {
+        luminance = luminance > 158 ? 255 : 0;
+      }
+      data[i] = luminance;
+      data[i + 1] = luminance;
+      data[i + 2] = luminance;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  }
+
+  function buildCanvas(img, maxDim, mode) {
+    const scale = Math.min(1, maxDim / Math.max(img.naturalWidth || img.width, img.naturalHeight || img.height));
+    const width = Math.max(1, Math.round((img.naturalWidth || img.width) * scale));
+    const height = Math.max(1, Math.round((img.naturalHeight || img.height) * scale));
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    applyPixels(ctx, width, height, mode);
+    return canvas;
+  }
+
+  async function compressImageFile(file) {
+    statusEl.textContent = 'Processing photo…';
+    const { img, url } = await loadImageFromFile(file);
+    try {
+      const mode = currentMode();
+      const target = budgetBytes();
+      const maxDimBase = currentTargetPages() > 1 ? mode.maxDim3 : mode.maxDim1;
+      let best = null;
+      let maxDim = maxDimBase;
+      const preferredMime = mode.mime;
+      for (let dimStep = 0; dimStep < 7; dimStep++) {
+        const canvas = buildCanvas(img, maxDim, mode);
+        const qualities = [];
+        for (let q = mode.quality; q >= mode.minQuality - 0.001; q -= 0.08) {
+          qualities.push(Math.max(mode.minQuality, Number(q.toFixed(2))));
+        }
+        for (const q of qualities) {
+          let blob = await canvasToBlob(canvas, preferredMime, q);
+          let actualMime = preferredMime;
+          if (!blob) {
+            actualMime = 'image/jpeg';
+            blob = await canvasToBlob(canvas, actualMime, q);
+          }
+          if (!blob) continue;
+          const candidate = {
+            blob,
+            mime: actualMime,
+            quality: q,
+            width: canvas.width,
+            height: canvas.height,
+          };
+          if (!best || blob.size < best.blob.size) best = candidate;
+          if (blob.size <= target) return candidate;
+        }
+        maxDim = Math.max(420, Math.round(maxDim * 0.84));
+      }
+      return best;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  function syncPanels() {
+    const mode = encryptionSelect.value;
+    passwordPanel.classList.toggle('is-hidden', mode !== 'password');
+    pubkeyPanel.classList.toggle('is-hidden', mode !== 'pubkey');
+    summaryEncryption.textContent = mode === 'clear' ? 'Cleartext' : (mode === 'password' ? 'Password' : 'Public key');
+    if (signToggle && signingPanel) signingPanel.classList.toggle('is-hidden', !signToggle.checked);
+  }
+
+  function refreshSummaryOnly() {
+    const profile = currentProfile();
+    const mode = currentMode();
+    hiddenPreset.value = profile.preset;
+    hiddenQrEcc.value = profile.qrEcc;
+    hiddenChunkMode.value = profile.chunkMode;
+    summaryProfile.textContent = profile.label;
+    summaryCapacity.textContent = `~${profile.pageBytes.toLocalString('it-IT')} B`;
+    summaryPages.textContent = String(currentTargetPages());
+    summaryMode.textContent = mode.label;
+    summaryDimension.textContent = `~${currentTargetPages() > 1 ? mode.maxDim3 : mode.maxDim1} px`;
+    summaryNote.textContent = profile.note;
+    budgetText.textContent = `Con ${profile.label}, ${currentTargetPages()} page(s) and profile ${mode.label}, the browser will try to stay within about ${formatBytes(budgetBytes())}.`;
+  }
+
+  async function updateFromSelectedFile(file, sourceLabel) {
+    if (!file) return;
+    refreshSummaryOnly();
+    submitBtn.disabled = true;
+    warningEl.textContent = '';
+    budgetBox.classList.remove('warning');
+    budgetBox.classList.add('info');
+    try {
+      const processed = await compressImageFile(file);
+      if (!processed || !processed.blob) throw new Error("Unable to compress the image.");
+      const ext = processed.mime.includes('webp') ? 'webp' : 'jpg';
+      const safeStem = (file.name || 'photo').replace(/\.[^.]+$/, '').replace(/[^a-z0-9_-]+/gi, '_') || 'photo';
+      const outputFile = new File([processed.blob], `${safeStem}_qrfs.${ext}`, { type: processed.mime });
+      currentOutput = {
+        file: outputFile,
+        width: processed.width,
+        height: processed.height,
+        sourceLabel,
+      };
+      const dt = new DataTransfer();
+      dt.items.add(outputFile);
+      processedInput.files = dt.files;
+      if (currentObjectUrl) URL.revokeObjectURL(currentObjectUrl);
+      currentObjectUrl = URL.createObjectURL(outputFile);
+      preview.src = currentObjectUrl;
+      photoStage.classList.remove('is-hidden');
+      const fits = outputFile.size <= budgetBytes();
+      const pagesEstimate = estimatedPagesForBytes(outputFile.size);
+      sourceSummary.textContent = sourceLabel;
+      dimensionsEl.textContent = `${processed.width} × ${processed.height} px`;
+      formatEl.textContent = outputFile.type || processed.mime;
+      sizeEl.textContent = formatBytes(outputFile.size);
+      pagesEstimateEl.textContent = `${pagesEstimate} page(s)`;
+      statusEl.textContent = fits ? 'Photo ready' : 'Photo still too large';
+      budgetText.textContent = `Output: ${formatBytes(outputFile.size)} on a conservative budget of ${formatBytes(budgetBytes())}. ${fits ? 'The photo fits within the selected profile.' : 'Reduce the target or change the image profile.'}`;
+      budgetBox.classList.toggle('warning', !fits);
+      budgetBox.classList.toggle('info', fits);
+      warningEl.textContent = fits ? '' : 'The processed photo still exceeds the budget for the chosen mode. Switch to 3 pages or use a more aggressive profile.';
+      submitBtn.disabled = !fits;
+    } catch (err) {
+      statusEl.textContent = 'Preprocess error';
+      warningEl.textContent = err && err.message ? err.message : String(err);
+      submitBtn.disabled = true;
+    }
+  }
+
+  function rerunIfCurrent() {
+    refreshSummaryOnly();
+    if (sourceInput.files && sourceInput.files[0]) {
+      updateFromSelectedFile(sourceInput.files[0], 'Image loaded');
+    } else if (cameraInput.files && cameraInput.files[0]) {
+      updateFromSelectedFile(cameraInput.files[0], 'Photo captured');
+    } else if (!currentOutput) {
+      submitBtn.disabled = true;
+    }
+  }
+
+  pickBtn.addEventListener('click', () => sourceInput.click());
+  captureBtn.addEventListener('click', () => cameraInput.click());
+  sourceInput.addEventListener('change', () => {
+    if (sourceInput.files && sourceInput.files[0]) {
+      cameraInput.value = '';
+      updateFromSelectedFile(sourceInput.files[0], 'Image loaded');
+    }
+  });
+  cameraInput.addEventListener('change', () => {
+    if (cameraInput.files && cameraInput.files[0]) {
+      sourceInput.value = '';
+      updateFromSelectedFile(cameraInput.files[0], 'Photo captured');
+    }
+  });
+  profileSelect.addEventListener('change', rerunIfCurrent);
+  modeSelect.addEventListener('change', rerunIfCurrent);
+  pageSelect.addEventListener('change', rerunIfCurrent);
+  encryptionSelect.addEventListener('change', syncPanels);
+  if (signToggle) signToggle.addEventListener('change', syncPanels);
+
+  syncPanels();
+  refreshSummaryOnly();
+})();
+</script>
+{% endblock %}

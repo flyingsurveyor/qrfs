@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+  <h2>Testbench result</h2>
+  <div class="stats-grid">
+    <div><strong>Trials</strong><span>{{ report.summary.trials }}</span></div>
+    <div><strong>Successes</strong><span>{{ report.summary.successes }}</span></div>
+    <div><strong>Failures</strong><span>{{ report.summary.failures }}</span></div>
+    <div><strong>Success rate</strong><span>{{ '%.1f'|format(report.summary.success_rate * 100) }}%</span></div>
+    <div><strong>File size</strong><span>{{ report.summary.file_size }} B</span></div>
+    <div><strong>Chunk size</strong><span>{{ report.summary.chunk_size }} B</span></div>
+    <div><strong>FEC type</strong><span>{{ report.summary.fec_type|upper }}</span></div>
+    <div><strong>FEC group</strong><span>{{ report.summary.fec_group_size }}</span></div>
+    <div><strong>Parity/group</strong><span>{{ report.summary.fec_parity_count }}</span></div>
+    <div><strong>Chunks recovered via FEC</strong><span>{{ report.summary.fec_recovered_total }}</span></div>
+    <div><strong>Encryption mode</strong><span>{{ report.summary.encryption_mode }}</span></div>
+    <div><strong>Signature</strong><span>{{ 'yes' if report.summary.signed else 'no' }}</span></div>
+    <div><strong>Compression</strong><span>{{ 'yes' if report.summary.compress else 'no' }}</span></div>
+    <div><strong>Pattern</strong><span>{{ report.summary.pattern }}</span></div>
+  </div>
+  <p><a href="{{ url_for('testbench.download_report', filename=report_name) }}">Download JSON report</a></p>
+</section>
+
+<section class="card">
+  <h3>Trial details</h3>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Result</th>
+          <th>Seed</th>
+          <th>Total QR</th>
+          <th>Pages</th>
+          <th>Removed</th>
+          <th>Removed data</th>
+          <th>Removed parity</th>
+          <th>Recovered</th>
+          <th>Error</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in report.results %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td>{{ 'OK' if row.ok else 'FAIL' }}</td>
+          <td>{{ row.seed }}</td>
+          <td>{{ row.total_qr }}</td>
+          <td>{{ row.total_pages }}</td>
+          <td>{{ row.removed_count }}</td>
+          <td>{{ row.removed_data_count }}</td>
+          <td>{{ row.removed_parity_count }}</td>
+          <td>{{ row.fec_recovered_chunks }}</td>
+          <td>{{ row.error or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}

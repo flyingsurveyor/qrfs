@@ -1,0 +1,186 @@
+{% extends 'base.html' %}
+{% block title %}Decode · QR FileSystem{% endblock %}
+{% block content %}
+<section class="page-intro card subtle-card compact-intro">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Decode</div>
+      <h2>Reconstruct from PDF, images, or camera</h2>
+      <p class="lead-sm">Start the decode task, watch live progress while QRFS scans and reconstructs the blob, then enter credentials only if the content is encrypted.</p>
+    </div>
+    <div class="actions wrap compact-actions-top">
+      <a class="button secondary" href="{{ url_for('scan.scan_view') }}">Open live camera</a>
+    </div>
+  </div>
+</section>
+
+<form method="post" enctype="multipart/form-data" class="workflow-shell single-side">
+  <div class="workflow-main stack-lg">
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">Source</div>
+          <h3>Upload the material to read</h3>
+        </div>
+        <details class="help-pop"><summary>?</summary><div>You can upload a multipage PDF or multiple images. Perfect ordering is not necessary: chunks carry their own metadata.</div></details>
+      </div>
+      <div class="grid two">
+        <label>
+          <span>Pages PDF</span>
+          <input type="file" name="scan_pdf" accept="application/pdf">
+        </label>
+        <label>
+          <span>Or images</span>
+          <input type="file" name="scan_images" accept="image/png,image/jpeg,image/tiff,image/bmp,image/*" multiple>
+        </label>
+      </div>
+    </section>
+
+    <details class="advanced-panel">
+      <summary>How unlocking works</summary>
+      <div class="advanced-panel-body">
+        <ul class="clean-list compact-list">
+          <li><strong>Cleartext:</strong> no credentials.</li>
+          <li><strong>Cleartext + signature:</strong> automatic verification.</li>
+          <li><strong>Password:</strong> popup only after reconstruction.</li>
+          <li><strong>Public key:</strong> popup with local identity or manual private key.</li>
+        </ul>
+      </div>
+    </details>
+
+    <div class="actions wrap">
+      <button class="button" type="submit" name="action" value="scan">Start decode from PDF / images</button>
+      <a class="button secondary" href="{{ url_for('scan.scan_view') }}">Use camera</a>
+    </div>
+  </div>
+
+  <aside class="workflow-side stack-md">
+    <section class="card sticky-card compact-card">
+      <div class="eyebrow">Checklist</div>
+      <ul class="clean-list compact-list">
+        <li>Upload PDFs or images for standard decoding.</li>
+        <li>For mixed or manual recovery, use Rescue from the hamburger menu.</li>
+        <li>Credentials are requested only when needed.</li>
+        <li>Download the reconstructed file.</li>
+      </ul>
+    </section>
+  </aside>
+</form>
+
+{% if pending_decrypt %}
+<dialog id="credential-modal" class="secret-modal">
+  <div class="secret-modal-inner">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Unlock content</div>
+        <h3>
+          {% if pending_decrypt.mode == 'password' %}This file requires a password{% else %}This file requires a private key{% endif %}
+        </h3>
+        <p class="lead-sm">
+          Blob reconstructed: <strong>{{ pending_decrypt.qr_count }} QR</strong> ·
+          {% if pending_decrypt.mode == 'password' %}
+            enter the file password.
+          {% else %}
+            use your local identity or paste the X25519 private key.
+          {% endif %}
+        </p>
+      </div>
+      <button type="button" class="button secondary small" id="close-credential-modal-top">Close</button>
+    </div>
+
+    {% if pending_decrypt.signed %}
+    <div class="callout success">
+      <strong>Signature present.</strong> If unlocking succeeds, signature verification will run automatically. The master password is not needed to verify a cleartext or already unlocked file.
+    </div>
+    {% endif %}
+    {% if modal_error %}
+    <div class="callout warning">{{ modal_error }}</div>
+    {% endif %}
+
+    <form method="post" class="stack-md" id="credential-form">
+      <input type="hidden" name="action" value="unlock">
+      <input type="hidden" name="pending_token" value="{{ pending_token }}">
+
+      {% if pending_decrypt.mode == 'password' %}
+      <label>
+        <span>File password</span>
+        <input type="password" name="password" minlength="14" placeholder="Enter the password used during encoding" autofocus>
+      </label>
+      {% else %}
+        {% if has_identity %}
+        <div class="grid two">
+          <label class="toggle-card">
+            <input type="checkbox" name="use_identity" id="use_identity" checked>
+            <span>
+              <strong>Use my identity</strong>
+              <small>{% if my_identity %}Local private key {{ my_identity.encryption_key_id }}.{% else %}Use the locally saved private key.{% endif %}</small>
+            </span>
+          </label>
+          <div id="identity-panel">
+            <label>
+              <span>Master password</span>
+              <input type="password" name="master_password" placeholder="Enter to unlock the private key" autofocus>
+            </label>
+          </div>
+        </div>
+        <label id="private-key-panel" class="is-hidden">
+          <span>X25519 private key</span>
+          <textarea name="private_key" rows="4" placeholder="Paste the private key if you don't want to use the local identity"></textarea>
+        </label>
+        {% else %}
+        <label>
+          <span>X25519 private key</span>
+          <textarea name="private_key" rows="4" placeholder="Paste the recipient's private key" autofocus></textarea>
+        </label>
+        {% endif %}
+        {% if pending_decrypt.recipient_key_id %}
+        <p class="hint">Expected recipient key ID: <code>{{ pending_decrypt.recipient_key_id }}</code></p>
+        {% endif %}
+      {% endif %}
+
+      <div class="actions">
+        <button class="button" type="submit">Unlock and reconstruct file</button>
+      </div>
+    </form>
+
+    <form method="post" class="actions" id="cancel-pending-form">
+      <input type="hidden" name="action" value="cancel_pending">
+      <input type="hidden" name="pending_token" value="{{ pending_token }}">
+      <button type="submit" class="button secondary" id="close-credential-modal">Cancel and close</button>
+    </form>
+  </div>
+</dialog>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const toggle = document.getElementById('use_identity');
+  const identityPanel = document.getElementById('identity-panel');
+  const privatePanel = document.getElementById('private-key-panel');
+  function syncIdentity() {
+    if (!toggle || !identityPanel) return;
+    const usingIdentity = toggle.checked;
+    identityPanel.classList.toggle('is-hidden', !usingIdentity);
+    if (privatePanel) privatePanel.classList.toggle('is-hidden', usingIdentity);
+  }
+  if (toggle) {
+    toggle.addEventListener('change', syncIdentity);
+    syncIdentity();
+  }
+
+  const modal = document.getElementById('credential-modal');
+  if (!modal) return;
+  const closeTop = document.getElementById('close-credential-modal-top');
+  const cancelForm = document.getElementById('cancel-pending-form');
+  if (closeTop && cancelForm) closeTop.addEventListener('click', () => cancelForm.submit());
+  modal.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    if (cancelForm) cancelForm.submit();
+  });
+  modal.showModal();
+})();
+</script>
+{% endblock %}

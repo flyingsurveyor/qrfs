@@ -1,0 +1,254 @@
+{% extends 'base.html' %}
+{% block title %}Contacts · QR FileSystem{% endblock %}
+{% block content %}
+<section class="page-intro card subtle-card compact-intro">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Contacts</div>
+      <h2>Contacts and identity cards</h2>
+      <p class="lead-sm">Import full identity cards or simple public encryption keys. You can capture them from text, files, live camera, or high-quality photos.</p>
+    </div>
+  </div>
+</section>
+
+<section class="card stack-md">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">New contact</div>
+      <h3>Add from text, file, or QR</h3>
+    </div>
+    <details class="help-pop"><summary>?</summary><div>An identity card stores both encryption and signature data. If you paste only the X25519 public key, the contact will be usable for encryption but not for recognizing signatures.</div></details>
+  </div>
+  <form method="post" enctype="multipart/form-data" class="form-grid">
+    <input type="hidden" name="action" value="add">
+    <div class="grid two">
+      <label>
+        <span>Contact name</span>
+        <input type="text" id="contact-name" name="name" placeholder="Optional if the card already contains a name">
+      </label>
+      <label>
+        <span>Image / PDF / JSON / TXT file</span>
+        <input type="file" name="public_key_qr" accept="image/*,.pdf,.json,.txt">
+      </label>
+    </div>
+
+    <div class="contact-import-actions">
+      <button class="button secondary" type="button" id="open-contact-scan">Live camera</button>
+      <label class="button secondary" style="cursor:pointer;display:inline-flex;align-items:center;gap:.5rem">
+        📸 High-quality photo
+        <input type="file" id="contact-photo-input" accept="image/*" capture="environment" style="display:none">
+      </label>
+      <span class="hint">Useful when someone shows you their identity card on a phone or a printed slip.</span>
+    </div>
+
+    <label>
+      <span>Identity card / public key / QR JSON payload</span>
+      <textarea id="public-key-text" name="public_key" rows="6" placeholder="Paste the content here"></textarea>
+    </label>
+    <p id="contact-import-status" class="hint contact-scan-status"></p>
+
+    <label>
+      <span>Note</span>
+      <textarea name="note" rows="3" placeholder="Verification channel, intended use, notes"></textarea>
+    </label>
+    <div class="actions wrap">
+      <button class="button" type="submit">Save to contacts</button>
+    </div>
+  </form>
+</section>
+
+<section class="card stack-md">
+  <div class="section-head section-head-tight">
+    <div>
+      <div class="eyebrow">Saved contacts</div>
+      <h3>{{ contacts|length }} contacts</h3>
+    </div>
+  </div>
+  {% if contacts %}
+    <div class="card-grid two-up">
+      {% for contact in contacts %}
+      <article class="soft-card compact-card contact-card">
+        <div class="section-head section-head-tight">
+          <div>
+            <h4>{{ contact.name }}</h4>
+            <div class="hint">Enc key ID: <code>{{ contact.encryption_key_id }}</code></div>
+          </div>
+          {% if contact.signing_key_id %}<span class="badge success">Known signature</span>{% else %}<span class="badge neutral">Encryption only</span>{% endif %}
+        </div>
+        <dl class="meta compact-meta">
+          <div><dt>Enc fingerprint</dt><dd><code>{{ contact.encryption_fingerprint }}</code></dd></div>
+          {% if contact.signing_key_id %}<div><dt>Sign key ID</dt><dd><code>{{ contact.signing_key_id }}</code></dd></div>{% endif %}
+          {% if contact.signing_fingerprint %}<div><dt>Sign fingerprint</dt><dd><code>{{ contact.signing_fingerprint }}</code></dd></div>{% endif %}
+          <div><dt>Note</dt><dd>{{ contact.note or '—' }}</dd></div>
+        </dl>
+        <details class="advanced-panel slim-details">
+          <summary>Key details</summary>
+          <div class="advanced-panel-body stack-sm">
+            <label>
+              <span>Encryption public key</span>
+              <textarea rows="3" readonly>{{ contact.encryption_public_key_b64 }}</textarea>
+            </label>
+            {% if contact.signing_public_key_b64 %}
+            <label>
+              <span>Signing public key</span>
+              <textarea rows="3" readonly>{{ contact.signing_public_key_b64 }}</textarea>
+            </label>
+            {% endif %}
+          </div>
+        </details>
+        <form method="post" onsubmit="return confirm('Remove this contact from the address book?');">
+          <input type="hidden" name="action" value="delete">
+          <input type="hidden" name="contact_id" value="{{ contact.id }}">
+          <button class="button secondary" type="submit">Remove</button>
+        </form>
+      </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="hint">No saved contacts.</p>
+  {% endif %}
+</section>
+
+<dialog id="contact-scan-modal" class="secret-modal qr-scan-modal">
+  <div class="secret-modal-inner stack-md">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Contact QR capture</div>
+        <h3>Read an identity card from camera or photo</h3>
+        <p class="lead-sm">The scanned content is inserted directly into the card field. If the payload includes a name, it is suggested automatically.</p>
+      </div>
+      <button type="button" class="button secondary small" id="close-contact-scan-top">Close</button>
+    </div>
+    <div id="contact-reader"></div>
+    <div class="grid two">
+      <div class="card subtle-card">
+        <div class="eyebrow">Status</div>
+        <p id="contact-scan-text">Ready. Start the camera to read an identity QR.</p>
+      </div>
+      <div class="card subtle-card">
+        <div class="eyebrow">Consiglio</div>
+        <p class="hint">If the QR is dense or the browser struggles, use the high-quality photo option and let the browser decode it directly.</p>
+      </div>
+    </div>
+    <div class="actions wrap">
+      <button class="button" type="button" id="contact-scan-start">Start live camera</button>
+      <button class="button secondary" type="button" id="contact-scan-stop" style="display:none">Stop camera</button>
+    </div>
+  </div>
+</dialog>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='vendor/html5-qrcode-2.3.8.min.js') }}"></script>
+<script>
+(function(){
+  const payloadField = document.getElementById('public-key-text');
+  const nameField = document.getElementById('contact-name');
+  const status = document.getElementById('contact-import-status');
+  const modal = document.getElementById('contact-scan-modal');
+  const scanText = document.getElementById('contact-scan-text');
+  const photoInput = document.getElementById('contact-photo-input');
+  let scanner = null;
+
+  function setStatus(msg, isError=false) {
+    if (!status) return;
+    status.textContent = msg || '';
+    status.style.color = isError ? 'var(--error)' : '';
+  }
+
+  function applyScannedText(text) {
+    if (!payloadField) return;
+    payloadField.value = text;
+    try {
+      const data = JSON.parse(text);
+      if (!nameField.value && data && typeof data.display_name === 'string' && data.display_name.trim()) {
+        nameField.value = data.display_name.trim();
+      }
+    } catch (e) {}
+    setStatus('QR content captured. You can save the contact now.');
+  }
+
+  async function stopScanner() {
+    if (scanner) {
+      try { await scanner.stop(); } catch (e) {}
+      try { await scanner.clear(); } catch (e) {}
+      scanner = null;
+    }
+    const startBtn = document.getElementById('contact-scan-start');
+    const stopBtn = document.getElementById('contact-scan-stop');
+    if (startBtn) startBtn.style.display = '';
+    if (stopBtn) stopBtn.style.display = 'none';
+  }
+
+  async function startScanner() {
+    if (!window.Html5Qrcode) {
+      setStatus('Libreria camera non disponibile.', true);
+      return;
+    }
+    await stopScanner();
+    if (scanText) scanText.textContent = 'Starting camera...';
+    scanner = new Html5Qrcode('contact-reader');
+    let cameras = [];
+    try { cameras = await Html5Qrcode.getCameras(); } catch (e) {}
+    const preferred = (cameras.find(c => /back|rear|environment/i.test(c.label || '')) || cameras[0]);
+    const target = preferred ? { deviceId: { exact: preferred.id } } : { facingMode: 'environment' };
+    try {
+      await scanner.start(
+        target,
+        {
+          fps: 8,
+          qrbox: (w, h) => {
+            const edge = Math.floor(Math.min(w, h) * 0.76);
+            return { width: edge, height: edge };
+          },
+          disableFlip: true,
+        },
+        (decodedText) => {
+          applyScannedText(decodedText);
+          if (scanText) scanText.textContent = 'QR acquisito correttamente.';
+          stopScanner().catch(() => {});
+          if (modal && typeof modal.close === 'function') modal.close();
+        },
+        () => {}
+      );
+      document.getElementById('contact-scan-start').style.display = 'none';
+      document.getElementById('contact-scan-stop').style.display = '';
+      if (scanText) scanText.textContent = 'Camera active. Point it at the identity card QR.';
+    } catch (err) {
+      const message = 'Camera error: ' + (err && err.message ? err.message : err);
+      if (scanText) scanText.textContent = message;
+      setStatus(message, true);
+    }
+  }
+
+  document.getElementById('open-contact-scan')?.addEventListener('click', () => {
+    if (modal && typeof modal.showModal === 'function') {
+      modal.showModal();
+      if (scanText) scanText.textContent = 'Ready. Start the camera to read an identity QR.';
+    }
+  });
+  document.getElementById('close-contact-scan-top')?.addEventListener('click', async () => {
+    await stopScanner();
+    modal?.close();
+  });
+  document.getElementById('contact-scan-start')?.addEventListener('click', startScanner);
+  document.getElementById('contact-scan-stop')?.addEventListener('click', stopScanner);
+  modal?.addEventListener('close', () => { stopScanner().catch(() => {}); });
+
+  photoInput?.addEventListener('change', async (event) => {
+    const file = event.target.files && event.target.files[0];
+    if (!file || !window.Html5Qrcode) return;
+    const helper = new Html5Qrcode('contact-reader');
+    try {
+      const decoded = await helper.scanFile(file, true);
+      applyScannedText(decoded);
+    } catch (err) {
+      setStatus('No readable QR found in the selected photo.', true);
+    } finally {
+      try { await helper.clear(); } catch (e) {}
+      event.target.value = '';
+    }
+  });
+})();
+</script>
+{% endblock %}

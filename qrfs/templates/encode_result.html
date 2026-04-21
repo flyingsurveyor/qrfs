@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Output generated · QR Filesystem{% endblock %}
+{% block content %}
+<section class="card result-hero">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Encoding complete</div>
+      <h2>Output ready for transport</h2>
+      <p class="lead-sm"><strong>{{ filename }}</strong> has been converted into QR pages. The PDF is always ready; the PNG ZIP appears only if you explicitly requested it.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge success">{{ page_count }} pages</span>
+      <span class="badge neutral">{{ qr_count }} Total QR</span>
+      <span class="badge neutral">{{ chunk_size }} B/QR</span>
+    </div>
+  </div>
+
+  <div class="actions hero-actions">
+    <a class="button" href="{{ url_for('encode.download_output', filename=pdf_name) }}">Download PDF</a>
+    {% if png_zip_name %}
+    <a class="button secondary" href="{{ url_for('encode.download_output', filename=png_zip_name) }}">Download PNG ZIP</a>
+    {% endif %}
+    <a class="button secondary" href="{{ url_for('encode.download_output', filename=manifest_name) }}">Download manifest JSON</a>
+    <a class="button secondary" href="{{ url_for('encode.encode_view') }}">New encode</a>
+  </div>
+</section>
+
+<section class="stats-grid result-stats">
+  <div>
+    <span class="stat-label">Profile</span>
+    <strong>{% if preset == 'robusto' %}Robust{% elif preset == 'denso' %}Dense{% else %}{{ preset|capitalize }}{% endif %}</strong>
+    <span class="hint">ECC {{ qr_ecc }}</span>
+  </div>
+  <div>
+    <span class="stat-label">Protection</span>
+    <strong>{% if encryption_mode == 'clear' %}Cleartext{% elif encryption_mode == 'password' %}Password{% else %}Public key{% endif %}</strong>
+    <span class="hint">Signature {{ 'enabled' if signed else 'disabled' }}</span>
+  </div>
+  <div>
+    <span class="stat-label">Encrypted payload</span>
+    <strong>{{ encrypted_size }}</strong>
+    <span class="hint">After packaging and encryption</span>
+  </div>
+  <div>
+    <span class="stat-label">Chosen capacity</span>
+    <strong>{{ chunk_size }} B/QR</strong>
+    <span class="hint">Layout 5×6</span>
+  </div>
+</section>
+
+<section class="card-grid two-up">
+  <article class="card">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Summary</div>
+        <h3>Main data</h3>
+      </div>
+    </div>
+    <dl class="summary-list">
+      <div><dt>Original file</dt><dd>{{ filename }}</dd></div>
+      <div><dt>Original size</dt><dd>{{ original_size }}</dd></div>
+      <div><dt>Packaged payload</dt><dd>{{ packed_size }}</dd></div>
+      <div><dt>Final blob</dt><dd>{{ encrypted_size }}</dd></div>
+      <div><dt>Chunk / QR</dt><dd>{{ qr_count }}</dd></div>
+      <div><dt>A4 pages</dt><dd>{{ page_count }}</dd></div>
+      <div><dt>Compression gain</dt><dd>{{ compression_gain }}</dd></div>
+      <div><dt>ZIP PNG</dt><dd>{{ 'generated' if png_zip_name else 'not requested' }}</dd></div>
+    </dl>
+  </article>
+
+  <article class="card">
+    <div class="section-head section-head-tight">
+      <div>
+        <div class="eyebrow">Protection and recovery</div>
+        <h3>Parameters used</h3>
+      </div>
+    </div>
+    <dl class="summary-list">
+      <div><dt>Protection</dt><dd>{% if encryption_mode == 'clear' %}cleartext{% elif encryption_mode == 'password' %}password{% else %}public key{% endif %}</dd></div>
+      <div><dt>Digital signature</dt><dd>{{ 'yes' if signed else 'no' }}</dd></div>
+      <div><dt>ECC QR</dt><dd>{{ qr_ecc }}</dd></div>
+      <div><dt>Chunk size</dt><dd>{{ chunk_size }} B</dd></div>
+      <div><dt>FEC</dt><dd>{% if fec_group_size %}{{ fec_type|upper }}: {{ fec_parity_count }} parity every {{ fec_group_size }} data{% else %}disabled{% endif %}</dd></div>
+      <div><dt>Estimated parity QR</dt><dd>{{ fec_parity_chunks }}</dd></div>
+    </dl>
+  </article>
+</section>
+
+<details class="advanced-panel">
+  <summary>Technical details and overhead</summary>
+  <div class="advanced-panel-body">
+    <dl class="summary-list">
+      <div><dt>Chunk header overhead</dt><dd>{{ chunk_header_total }}</dd></div>
+      <div><dt>Estimated total overhead</dt><dd>{{ overhead_total }}</dd></div>
+      <div><dt>Overhead ratio</dt><dd>{{ overhead_ratio }}</dd></div>
+    </dl>
+  </div>
+</details>
+{% endblock %}

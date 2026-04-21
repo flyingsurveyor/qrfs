@@ -1,0 +1,92 @@
+{% extends 'base.html' %}
+{% block title %}Decoding in progress · QR Filesystem{% endblock %}
+{% block content %}
+<section class="card result-hero">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Decoding in progress</div>
+      <h2>Reconstructing the uploaded QRFS bundle</h2>
+      <p class="lead-sm">This page stays live while QRFS scans the PDF or images, rebuilds the blob, and only then asks for a password or private key if needed.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge neutral" id="progress-percent-label">0%</span>
+      <span class="badge neutral" id="progress-stage-badge">Queued</span>
+    </div>
+  </div>
+</section>
+
+<section class="card stack-md">
+  <div class="progress-shell" aria-live="polite">
+    <div class="progress-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="progress-fill" id="progress-fill" style="width: 0%"></div>
+    </div>
+    <div class="progress-meta">
+      <strong id="progress-stage">Preparing…</strong>
+      <span id="progress-percent">0%</span>
+    </div>
+    <p class="hint" id="progress-message">The decode task has been created and is about to start.</p>
+  </div>
+
+  <div id="progress-error" class="callout danger is-hidden"></div>
+
+  <div class="actions">
+    <a class="button secondary" href="{{ url_for('decode.decode_view') }}">Back to decoding</a>
+    <a class="button secondary" href="{{ url_for('index') }}">Home</a>
+  </div>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const taskId = {{ task_id|tojson }};
+const statusUrl = {{ url_for('decode.decode_progress_status', task_id=task_id)|tojson }};
+let pollTimer = null;
+
+function setProgress(percent, stage, message) {
+  const pct = Math.max(0, Math.min(100, Number(percent || 0)));
+  const fill = document.getElementById('progress-fill');
+  const bar = document.querySelector('.progress-bar');
+  fill.style.width = `${pct}%`;
+  bar.setAttribute('aria-valuenow', String(pct));
+  document.getElementById('progress-percent').textContent = `${pct}%`;
+  document.getElementById('progress-percent-label').textContent = `${pct}%`;
+  document.getElementById('progress-stage').textContent = stage || 'Working…';
+  document.getElementById('progress-stage-badge').textContent = stage || 'Working';
+  document.getElementById('progress-message').textContent = message || 'Wait for the task to complete.';
+}
+
+function showError(message) {
+  const box = document.getElementById('progress-error');
+  box.classList.remove('is-hidden');
+  box.innerHTML = `<strong>Decoding failed.</strong> ${message || 'Unknown error.'}`;
+}
+
+async function pollStatus() {
+  try {
+    const res = await fetch(statusUrl, { cache: 'no-store' });
+    if (!res.ok) {
+      showError('I can no longer read the task status.');
+      return;
+    }
+    const data = await res.json();
+    setProgress(data.percent, data.stage, data.message);
+    if ((data.status === 'done' || data.status === 'needs_unlock') && data.redirect_url) {
+      window.location.href = data.redirect_url;
+      return;
+    }
+    if (data.status === 'error') {
+      showError(data.error);
+      return;
+    }
+    pollTimer = window.setTimeout(pollStatus, 900);
+  } catch (err) {
+    showError(err && err.message ? err.message : String(err));
+  }
+}
+
+pollStatus();
+window.addEventListener('beforeunload', () => {
+  if (pollTimer) window.clearTimeout(pollTimer);
+});
+</script>
+{% endblock %}

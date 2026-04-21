@@ -1,0 +1,388 @@
+{% extends 'base.html' %}
+{% block title %}Encode · QR Filesystem{% endblock %}
+{% block content %}
+<section class="page-intro card subtle-card compact-intro">
+  <div class="section-head">
+    <div>
+      <div class="eyebrow">Encode</div>
+      <h2>Generate QR for files, audio, or photos</h2>
+      <p class="lead-sm">Choose the content type, then protection and profile. Explanations stay in the popups or advanced sections.</p>
+    </div>
+    <div class="status-row stacked-mobile">
+      <span class="badge success">Layout 5×6</span>
+      <span class="badge neutral">30 QR / page</span>
+    </div>
+  </div>
+  <nav class="subnav-tabs" aria-label="Encoding types">
+    <a class="active" href="{{ url_for('encode.encode_view') }}">File</a>
+    <a href="{{ url_for('encode.voice_view') }}">Audio</a>
+    <a href="{{ url_for('encode.photo_view') }}">Photo</a>
+  </nav>
+</section>
+
+<form method="post" enctype="multipart/form-data" class="workflow-shell">
+  <div class="workflow-main stack-lg">
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">1. Source</div>
+          <h3>File and compression</h3>
+        </div>
+      </div>
+      <div class="grid two">
+        <label>
+          <span>File to encode</span>
+          <input type="file" name="file" required>
+        </label>
+        <label class="toggle-card">
+          <input type="checkbox" name="compress" checked>
+          <span>
+            <strong>Compression enabled</strong>
+            <small>Useful for text, JSON, and repetitive files. Neutral or minimal for already compressed files.</small>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">2. Protection</div>
+          <h3>How do you want to protect the content</h3>
+        </div>
+      </div>
+      <div class="grid two">
+        <label>
+          <span>Content protection</span>
+          <select name="encryption_mode" id="encryption_mode">
+            <option value="clear">Cleartext</option>
+            <option value="password" selected>Password</option>
+            <option value="pubkey">Recipient public key</option>
+          </select>
+        </label>
+        <details class="help-pop"><summary>?</summary><div><strong>Protection:</strong> cleartext = no encryption, optional signature. Password = simple exchange. Public key = regular recipients.</div></details>
+      </div>
+
+      <div id="password-panel" class="stack-sm">
+        <div class="grid two">
+          <label>
+            <span>Password</span>
+            <input type="password" name="password" minlength="14" placeholder="Long, non-trivial passphrase">
+          </label>
+          <label>
+            <span>Confirm password</span>
+            <input type="password" name="password_confirm" minlength="14" placeholder="Repeat the same password">
+          </label>
+        </div>
+        
+      </div>
+
+      <div id="pubkey-panel" class="stack-sm is-hidden">
+        <div class="grid two">
+          <label>
+            <span>From contacts</span>
+            <select name="contact_id">
+              <option value="">-- None --</option>
+              {% if my_identity %}
+              <option value="__self__">🔑 Myself ({{ my_identity.encryption_key_id }})</option>
+              {% endif %}
+              {% for contact in contacts %}
+              <option value="{{ contact.id }}">{{ contact.name }} — {{ contact.key_id }}</option>
+              {% endfor %}
+            </select>
+          </label>
+          <label>
+            <span>File with public-key QR</span>
+            <input type="file" name="public_key_qr" accept="image/*,.pdf">
+          </label>
+        </div>
+        <label>
+          <span>Oppure public key X25519 / payload QR JSON</span>
+          <textarea name="public_key" rows="3" placeholder="Paste key or payload"></textarea>
+        </label>
+      </div>
+    </section>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">3. Signature</div>
+          <h3>Optional digital signature</h3>
+        </div>
+      </div>
+      {% if has_identity %}
+      <div class="grid two">
+        <label class="toggle-card">
+          <input type="checkbox" name="sign_with_identity" id="sign_with_identity" checked>
+          <span>
+            <strong>Sign with my identity</strong>
+            <small>The recipient will be able to verify who produced the content.</small>
+          </span>
+        </label>
+        <div id="signing-identity-panel">
+          <label>
+            <span>Master password</span>
+            <input type="password" name="master_password" placeholder="Enter to unlock the signing key">
+          </label>
+        </div>
+      </div>
+      {% else %}
+      <div class="callout warning">
+        <strong>No identity available.</strong> <a href="{{ url_for('keys.keys_view') }}">Generate an identity</a> to sign with one click, or use the manual key below.
+      </div>
+      <label>
+        <span>Manual Ed25519 private key</span>
+        <textarea name="signing_private_key" rows="3" placeholder="Paste signing key"></textarea>
+      </label>
+      {% endif %}
+    </section>
+
+    <details class="advanced-panel" open>
+      <summary>Profile and capacity</summary>
+      <div class="advanced-panel-body stack-md">
+        <div class="grid two">
+          <label>
+            <span>Single-QR robustness</span>
+            <select name="qr_ecc" id="qr_ecc">
+              <option value="M" selected>ECC M — more tolerant of damage and difficult scans</option>
+              <option value="L">ECC L — less tolerance, more capacity</option>
+            </select>
+          </label>
+          <label>
+            <span>Page density</span>
+            <select name="preset" id="preset">
+              <option value="robusto">Robust — easy printing</option>
+              <option value="standard" selected>Standard — good balance</option>
+              <option value="denso">Dense — when you want to squeeze the page</option>
+            </select>
+          </label>
+        </div>
+        <label>
+          <span>Data per QR</span>
+          <select name="chunk_size_mode" id="chunk_size_mode">
+            <option value="preset" selected>Automatic — use the selected preset</option>
+            <option value="1200">Force 1200 B/QR — aggressive profile</option>
+          </select>
+        </label>
+        <div id="preset-info" class="callout info"></div>
+      </div>
+    </details>
+
+    <details class="advanced-panel">
+      <summary>Recovery from missing QR (FEC)</summary>
+      <div class="advanced-panel-body stack-md">
+        <div class="grid three">
+          <label>
+            <span>FEC group</span>
+            <select name="fec_group_size">
+              <option value="0" selected>None</option>
+              <option value="3">3</option>
+              <option value="5">5</option>
+              <option value="8">8</option>
+            </select>
+          </label>
+          <label>
+            <span>FEC type</span>
+            <select name="fec_type">
+              <option value="xor" selected>XOR</option>
+              <option value="rs">Reed-Solomon</option>
+            </select>
+          </label>
+          <label>
+            <span>Recovery QR per group</span>
+            <select name="fec_parity_count">
+              <option value="1" selected>1</option>
+              <option value="2">2</option>
+            </select>
+          </label>
+        </div>
+        <details class="help-pop inline-help"><summary>?</summary><div><strong>FEC:</strong> adds recovery QR codes. Especially useful with ECC L or difficult scans/prints.</div></details>
+      </div>
+    </details>
+
+    <section class="card form-section">
+      <div class="section-head section-head-tight">
+        <div>
+          <div class="eyebrow">4. Output</div>
+          <h3>Generated format</h3>
+        </div>
+      </div>
+      <div class="grid two">
+        <div class="callout success">
+          <strong>PDF always generated.</strong> It is the main output and the fastest choice for large files.
+        </div>
+        <label class="toggle-card">
+          <input type="checkbox" name="generate_png_zip">
+          <span>
+            <strong>Also generate PNG ZIP</strong>
+            <small>Optional and slower. Useful only if you also want the pages as individual images.</small>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <div class="actions wrap">
+      <button class="button" type="submit" id="encode-submit">Start encoding</button>
+      <a class="button secondary" href="{{ url_for('decode.decode_view') }}">Open decode</a>
+    </div>
+  </div>
+
+  <aside class="workflow-side stack-md">
+    <section class="card sticky-card">
+      <div class="eyebrow">Live estimate</div>
+      <h3>Current profile</h3>
+      <dl class="summary-list">
+        <div><dt>Protection</dt><dd id="summary-encryption">Password</dd></div>
+        <div><dt>Signature</dt><dd id="summary-signature">Enabled</dd></div>
+        <div><dt>QR per page</dt><dd>30</dd></div>
+        <div><dt>Data per QR</dt><dd id="summary-chunk">900 B</dd></div>
+        <div><dt>Theoretical capacity</dt><dd id="summary-capacity">~26,4 KiB/page</dd></div>
+        <div><dt>Extra recovery</dt><dd id="summary-fec">Disabled</dd></div>
+      </dl>
+      <div id="profile-note" class="callout neutral">Balanced initial profile: a good compromise between density and scanning ease.</div>
+    </section>
+
+    
+  </aside>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const PRESETS = {
+  robusto:  {M: {chunk: 450}, L: {chunk: 640}},
+  standard: {M: {chunk: 650}, L: {chunk: 900}},
+  denso:    {M: {chunk: 800}, L: {chunk: 1100}}
+};
+const PRESET_LABELS = { robusto: 'Robust', standard: 'Standard', denso: 'Dense' };
+
+function qs(id) {
+  return document.getElementById(id);
+}
+
+function updateEncryptionUI() {
+  const mode = qs('encryption_mode').value;
+  qs('password-panel').classList.toggle('is-hidden', mode !== 'password');
+  qs('pubkey-panel').classList.toggle('is-hidden', mode !== 'pubkey');
+  const label = mode === 'password' ? 'Password' : (mode === 'pubkey' ? 'Public key' : 'Cleartext');
+  qs('summary-encryption').textContent = label;
+}
+
+function updateSigningUI() {
+  const toggle = qs('sign_with_identity');
+  const panel = qs('signing-identity-panel');
+  if (!toggle || !panel) return;
+  panel.classList.toggle('is-hidden', !toggle.checked);
+  qs('summary-signature').textContent = toggle.checked ? 'Enabled' : 'Disabled';
+}
+
+function updatePresetInfo() {
+  const ecc = qs('qr_ecc').value;
+  const preset = qs('preset').value;
+  const chunkMode = qs('chunk_size_mode').value;
+  const presetInfo = PRESETS[preset] && PRESETS[preset][ecc];
+  if (!presetInfo) return;
+
+  let effectiveChunk = presetInfo.chunk;
+  let note = ecc === 'L'
+    ? 'High capacity: consider FEC if you expect imperfect printing or scanning.'
+    : 'More conservative profile: the individual QR tolerates damage and difficult scans better.';
+  let risk = 'neutral';
+
+  if (chunkMode === '1200') {
+    effectiveChunk = 1200;
+    note = 'Experimental override: about 36,000 B/page in the 5×6 layout. Always test on print and on phone.';
+    risk = 'warning';
+  } else if (preset === 'denso' && ecc === 'L') {
+    risk = 'warning';
+  } else if (preset === 'robusto' && ecc === 'M') {
+    risk = 'success';
+  }
+
+  const pageKiB = ((effectiveChunk * 30) / 1024).toFixed(1).replace('.', ',');
+  qs('summary-chunk').textContent = `${effectiveChunk} B`;
+  qs('summary-capacity').textContent = `~${pageKiB} KiB/page`;
+  const presetLabel = PRESET_LABELS[preset] || preset;
+  qs('preset-info').innerHTML = `<strong>${presetLabel.toUpperCase()} + ECC ${ecc}</strong> · ${effectiveChunk} B/QR · 30 QR/page.`;
+
+  const profileNote = qs('profile-note');
+  profileNote.className = `callout ${risk}`;
+  profileNote.textContent = note;
+}
+
+function updateFecSummary() {
+  const group = document.querySelector('[name="fec_group_size"]').value;
+  const type = document.querySelector('[name="fec_type"]').value.toUpperCase();
+  const parity = document.querySelector('[name="fec_parity_count"]').value;
+  qs('summary-fec').textContent = group === '0' ? 'Disabled' : `${type} ${parity}/${group}`;
+}
+
+function syncFecControls() {
+  const groupEl = document.querySelector('[name="fec_group_size"]');
+  const typeEl = document.querySelector('[name="fec_type"]');
+  const parityEl = document.querySelector('[name="fec_parity_count"]');
+  if (!groupEl || !typeEl || !parityEl) return;
+  const group = Number(groupEl.value || '0');
+  const type = typeEl.value;
+  const options = Array.from(parityEl.options);
+  if (group === 0) {
+    parityEl.value = '1';
+    parityEl.disabled = true;
+    options.forEach((opt) => { opt.disabled = opt.value !== '1'; });
+    updateFecSummary();
+    return;
+  }
+  parityEl.disabled = false;
+  if (type === 'xor') {
+    options.forEach((opt) => { opt.disabled = opt.value !== '1'; });
+    parityEl.value = '1';
+  } else {
+    options.forEach((opt) => {
+      const value = Number(opt.value);
+      opt.disabled = value < 1 || value >= group;
+    });
+    if (Number(parityEl.value) >= group || Number(parityEl.value) < 1) {
+      const firstAllowed = options.find((opt) => !opt.disabled);
+      if (firstAllowed) parityEl.value = firstAllowed.value;
+    }
+  }
+  updateFecSummary();
+}
+
+
+function bindLiveUI() {
+  ['encryption_mode', 'qr_ecc', 'preset', 'chunk_size_mode'].forEach((id) => {
+    const el = qs(id);
+    if (el) el.addEventListener('change', () => {
+      updateEncryptionUI();
+      updatePresetInfo();
+    });
+  });
+
+  ['fec_group_size', 'fec_type', 'fec_parity_count'].forEach((name) => {
+    const el = document.querySelector(`[name="${name}"]`);
+    if (el) el.addEventListener('change', syncFecControls);
+  });
+
+  const signToggle = qs('sign_with_identity');
+  if (signToggle) signToggle.addEventListener('change', updateSigningUI);
+
+  updateEncryptionUI();
+  updateSigningUI();
+  updatePresetInfo();
+  syncFecControls();
+}
+
+bindLiveUI();
+
+const encodeForm = document.querySelector('.workflow-shell');
+const submitBtn = qs('encode-submit');
+if (encodeForm && submitBtn) {
+  encodeForm.addEventListener('submit', () => {
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Starting…';
+  });
+}
+
+</script>
+{% endblock %}

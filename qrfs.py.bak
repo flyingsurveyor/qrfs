@@ -1,0 +1,11 @@
+#!/usr/bin/env python3
+from qrfs import app
+
+if __name__ == '__main__':
+    import sys
+    use_debug = '--debug' in sys.argv
+    try:
+        import _multiprocessing  # noqa: F401
+    except ImportError:
+        use_debug = False
+    app.run(host='0.0.0.0', port=5000, debug=use_debug)

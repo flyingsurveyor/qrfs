@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+data/
+*.sqlite3
+*.log
+.DS_Store
+Thumbs.db

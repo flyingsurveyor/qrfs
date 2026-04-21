@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block content %}
+<section class="card">
+  <h2>Internal testbench</h2>
+  <p>Generate a synthetic payload, package it, encrypt it, chunk it, remove some chunks to simulate missing QR codes, and test full in-memory reconstruction.</p>
+
+  <form method="post" class="form-grid">
+    <label>Synthetic file size (bytes)
+      <input type="number" name="file_size" value="65536" min="1" step="1">
+    </label>
+
+    <label>Number of trials
+      <input type="number" name="trials" value="3" min="1" max="50" step="1">
+    </label>
+
+    <label>Encryption mode
+      <select name="encryption_mode">
+        <option value="password">Password</option>
+        <option value="pubkey">Public key</option>
+      </select>
+    </label>
+
+    <label>Testbench password
+      <input type="text" name="password" value="testbench-password">
+    </label>
+
+    <label>Synthetic data pattern
+      <select name="pattern">
+        <option value="mixed">Mixed</option>
+        <option value="random">Random</option>
+        <option value="text">Compressible text</option>
+      </select>
+    </label>
+
+    <label>Chunk size
+      <input type="number" name="chunk_size" value="900" min="65" step="1">
+    </label>
+
+    <label>FEC data group
+      <select name="fec_group_size">
+        <option value="0">None</option>
+        <option value="2">2 data</option>
+        <option value="3">3 data</option>
+        <option value="4" selected>4 data</option>
+        <option value="5">5 data</option>
+        <option value="6">6 data</option>
+        <option value="8">8 data</option>
+      </select>
+    </label>
+
+    <label>FEC type
+      <select name="fec_type">
+        <option value="xor" selected>XOR</option>
+        <option value="rs">Reed-Solomon</option>
+      </select>
+    </label>
+
+    <label>Parity chunks per group
+      <select name="fec_parity_count">
+        <option value="1" selected>1</option>
+        <option value="2">2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+    </label>
+
+    <label>Chunk loss simulation
+      <select name="remove_mode">
+        <option value="none">No loss</option>
+        <option value="single_any" selected>1 arbitrary chunk</option>
+        <option value="single_per_group">1 data chunk per FEC group</option>
+        <option value="double_same_group">2 chunks in the same group</option>
+        <option value="parity_only">Only parity chunks</option>
+      </select>
+    </label>
+
+    <label class="checkbox"><input type="checkbox" name="compress"> Compression</label>
+    <label class="checkbox"><input type="checkbox" name="sign"> Digital signature</label>
+
+    <div class="actions">
+      <button type="submit">Run testbench</button>
+    </div>
+  </form>
+</section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const groupEl = document.querySelector('[name="fec_group_size"]');
+  const typeEl = document.querySelector('[name="fec_type"]');
+  const parityEl = document.querySelector('[name="fec_parity_count"]');
+  if (!groupEl || !typeEl || !parityEl) return;
+  const sync = () => {
+    const group = Number(groupEl.value || '0');
+    const type = typeEl.value;
+    const options = Array.from(parityEl.options);
+    if (group === 0) {
+      parityEl.value = '1';
+      parityEl.disabled = true;
+      options.forEach((opt) => { opt.disabled = opt.value !== '1'; });
+      return;
+    }
+    parityEl.disabled = false;
+    if (type === 'xor') {
+      options.forEach((opt) => { opt.disabled = opt.value !== '1'; });
+      parityEl.value = '1';
+    } else {
+      options.forEach((opt) => {
+        const value = Number(opt.value);
+        opt.disabled = value < 1 || value >= group;
+      });
+      if (Number(parityEl.value) >= group || Number(parityEl.value) < 1) {
+        const firstAllowed = options.find((opt) => !opt.disabled);
+        if (firstAllowed) parityEl.value = firstAllowed.value;
+      }
+    }
+  };
+  groupEl.addEventListener('change', sync);
+  typeEl.addEventListener('change', sync);
+  parityEl.addEventListener('change', sync);
+  sync();
+})();
+</script>
+{% endblock %}
