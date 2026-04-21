@@ -1,9 +1,10 @@
-from .encode import encode_bp
-from .decode import decode_bp
-from .keys import keys_bp
 from .contacts import contacts_bp
+from .decode import decode_bp
+from .encode import encode_bp
+from .keys import keys_bp
 from .scan import scan_bp
 from .testbench import testbench_bp
+from .update import update_bp
 
 __all__ = [
     'encode_bp',
@@ -12,4 +13,5 @@ __all__ = [
     'contacts_bp',
     'scan_bp',
     'testbench_bp',
+    'update_bp',
 ]

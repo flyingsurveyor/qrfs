@@ -1,59 +1,222 @@
 {% extends 'base.html' %}
 {% block title %}QR FileSystem{% endblock %}
+
+{% block extra_head %}
+<style>
+  .home-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+    margin: 1rem 0 1.25rem;
+  }
+  .home-card,
+  .update-panel {
+    border: 1px solid rgba(127, 127, 127, 0.22);
+    border-radius: 16px;
+    padding: 16px;
+    background: rgba(127, 127, 127, 0.05);
+  }
+  .home-card h3,
+  .update-panel h3 {
+    margin-top: 0;
+    margin-bottom: 0.5rem;
+  }
+  .home-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 0.9rem;
+  }
+  .status-pill {
+    display: inline-block;
+    padding: 0.28rem 0.7rem;
+    border-radius: 999px;
+    border: 1px solid rgba(127, 127, 127, 0.28);
+    font-size: 0.92rem;
+  }
+  .status-details {
+    opacity: 0.82;
+    margin-top: 0.55rem;
+  }
+  .update-log {
+    display: none;
+    margin-top: 0.9rem;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid rgba(127, 127, 127, 0.22);
+    background: rgba(127, 127, 127, 0.04);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92rem;
+    white-space: pre-wrap;
+    max-height: 260px;
+    overflow: auto;
+  }
+</style>
+{% endblock %}
+
 {% block content %}
-<section class="card compact-hero">
-  <div class="section-head">
-    <div>
-      <div class="eyebrow">Local · offline · printable</div>
-      <h2>Optical data transport with multiple QR codes, encryption, and signatures.</h2>
-      <p class="lead-sm">Generate A4 pages, reconstruct from PDFs, images, or camera, use local identities and exportable backups. Everything stays on your device.</p>
-    </div>
-    <div class="status-row stacked-mobile">
-      <span class="badge success">Layout 5×6</span>
-      <span class="badge neutral">30 QR / page</span>
-      <span class="badge neutral">Audio · photos · files</span>
-    </div>
-  </div>
-  <div class="actions hero-actions wrap">
-    <a class="button" href="{{ url_for('encode.encode_view') }}">Encode</a>
-    <a class="button secondary" href="{{ url_for('decode.decode_view') }}">Decode</a>
-    <a class="button secondary" href="{{ url_for('scan.scan_view') }}">Live camera</a>
-  </div>
-</section>
+<p>Local · offline · printable</p>
+<h2>Optical data transport with multiple QR codes, encryption, and signatures.</h2>
+<p>
+  Generate A4 pages, reconstruct from PDFs, images, or camera, use local identities and exportable backups.
+  Everything stays on your device.
+</p>
 
-<section class="action-grid action-grid-three">
-  <a class="card action-card" href="{{ url_for('encode.encode_view') }}">
-    <span class="eyebrow">Encode</span>
-    <h3>Files, audio, and photos</h3>
-    <p>A single entry point to generate QR PDFs with quick profiles or advanced settings.</p>
-  </a>
-  <a class="card action-card" href="{{ url_for('decode.decode_view') }}">
-    <span class="eyebrow">Decode</span>
-    <h3>PDFs, images, or camera</h3>
-    <p>Reconstruct the blob, then unlock only if a password or private key is actually needed.</p>
-  </a>
-  <a class="card action-card" href="{{ url_for('keys.keys_view') }}">
-    <span class="eyebrow">Identity</span>
-    <h3>Keys, cards, and backups</h3>
-    <p>Manage local identities, public identity cards, and encrypted backups or recovery sheets.</p>
-  </a>
-</section>
+<div class="home-grid">
+  <section class="home-card">
+    <h3>Encode</h3>
+    <p>Files, audio, and photos from a single entry point, with quick profiles and advanced controls when needed.</p>
+    <div class="home-actions">
+      <a href="/encode">Open encode</a>
+      <a href="/encode/photo">Photo mode</a>
+    </div>
+  </section>
 
-<section class="card-grid three-up compact-cards">
-  <article class="card compact-card">
-    <div class="eyebrow">Stable</div>
-    <h3>Easy to print</h3>
-    <p>Conservative preset for everyday use, scanners, and phones.</p>
-  </article>
-  <article class="card compact-card">
-    <div class="eyebrow">Max</div>
-    <h3>Fino a 1200 B/QR</h3>
-    <p>Higher-density profile for users who want more capacity while keeping the 5×6 layout.</p>
-  </article>
-  <article class="card compact-card">
-    <div class="eyebrow">Advanced</div>
-    <h3>Only when needed</h3>
-    <p>ECC, FEC, chunk size, and recovery remain available without getting in the way.</p>
-  </article>
+  <section class="home-card">
+    <h3>Decode</h3>
+    <p>Reconstruct from PDF, images, or the live camera scanner, then unlock only when a password or private key is actually required.</p>
+    <div class="home-actions">
+      <a href="/decode">Open decode</a>
+      <a href="/scan">Live camera</a>
+    </div>
+  </section>
+
+  <section class="home-card">
+    <h3>Identity</h3>
+    <p>Manage local identities, public identity cards, encrypted backups, recovery material, and trusted contacts.</p>
+    <div class="home-actions">
+      <a href="/keys">Keys</a>
+      <a href="/contacts">Contacts</a>
+    </div>
+  </section>
+</div>
+
+<section class="update-panel" aria-labelledby="github-updates-title">
+  <h3 id="github-updates-title">Identity · GitHub updates</h3>
+  <p>Check whether this local QRFS instance matches the latest commit on GitHub, then pull updates directly when available.</p>
+
+  <p>
+    <span class="status-pill" id="update-status">Checking…</span>
+  </p>
+  <p class="status-details" id="update-details">Loading update status…</p>
+
+  <div class="home-actions">
+    <button type="button" id="update-refresh-btn">Check now</button>
+    <button type="button" id="update-run-btn" disabled>Update now</button>
+  </div>
+
+  <pre class="update-log" id="update-log" aria-live="polite"></pre>
 </section>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+(function () {
+  const statusEl = document.getElementById('update-status');
+  const detailsEl = document.getElementById('update-details');
+  const refreshBtn = document.getElementById('update-refresh-btn');
+  const runBtn = document.getElementById('update-run-btn');
+  const logEl = document.getElementById('update-log');
+
+  let source = null;
+
+  function setStatus(text) {
+    statusEl.textContent = text;
+  }
+
+  function setDetails(text) {
+    detailsEl.textContent = text;
+  }
+
+  function appendLog(line) {
+    logEl.style.display = 'block';
+    logEl.textContent += (logEl.textContent ? '\n' : '') + line;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  async function refreshUpdateStatus() {
+    setStatus('Checking…');
+    setDetails('Loading update status…');
+    runBtn.disabled = true;
+
+    try {
+      const res = await fetch('/api/update/check', { cache: 'no-store' });
+      const data = await res.json();
+
+      const local = data.local || 'unknown';
+      const remote = data.remote || 'unreachable';
+      setDetails(`Local ${local} · Remote ${remote} · ${data.repo}/${data.branch}`);
+
+      if (!data.git_repo) {
+        setStatus('No git checkout');
+        setDetails(`${detailsEl.textContent} · Self-update unavailable in this installation.`);
+        runBtn.disabled = true;
+        return;
+      }
+
+      if (data.update_available) {
+        setStatus('Update available');
+        runBtn.disabled = false;
+        return;
+      }
+
+      if (data.up_to_date) {
+        setStatus('Up to date');
+        runBtn.disabled = true;
+        return;
+      }
+
+      setStatus('Status unavailable');
+      runBtn.disabled = true;
+    } catch (err) {
+      setStatus('Check failed');
+      setDetails(err && err.message ? err.message : 'Unable to contact update endpoint.');
+      runBtn.disabled = true;
+    }
+  }
+
+  function closeSource() {
+    if (source) {
+      source.close();
+      source = null;
+    }
+  }
+
+  function runUpdate() {
+    closeSource();
+    logEl.textContent = '';
+    logEl.style.display = 'block';
+    runBtn.disabled = true;
+    refreshBtn.disabled = true;
+    setStatus('Updating…');
+
+    source = new EventSource('/api/update/run');
+    source.onmessage = async (event) => {
+      try {
+        const payload = JSON.parse(event.data);
+        if (payload.kind === 'done' || payload.line === 'DONE') {
+          closeSource();
+          refreshBtn.disabled = false;
+          await refreshUpdateStatus();
+          return;
+        }
+        appendLog(payload.line || '');
+      } catch (err) {
+        appendLog(event.data);
+      }
+    };
+
+    source.onerror = async () => {
+      appendLog('Connection closed. Re-checking status…');
+      closeSource();
+      refreshBtn.disabled = false;
+      await refreshUpdateStatus();
+    };
+  }
+
+  refreshBtn.addEventListener('click', refreshUpdateStatus);
+  runBtn.addEventListener('click', runUpdate);
+  refreshUpdateStatus();
+})();
+</script>
 {% endblock %}

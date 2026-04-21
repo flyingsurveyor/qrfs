@@ -1,7 +1,17 @@
-from flask import Flask, render_template
-from .routes import contacts_bp, decode_bp, encode_bp, keys_bp, scan_bp, testbench_bp
 import os
 import secrets
+
+from flask import Flask, render_template
+
+from .routes import (
+    contacts_bp,
+    decode_bp,
+    encode_bp,
+    keys_bp,
+    scan_bp,
+    testbench_bp,
+    update_bp,
+)
 
 PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 BASE_DIR = os.path.dirname(PACKAGE_DIR)
@@ -20,8 +30,8 @@ def _get_secret_key() -> str:
         if os.path.exists(key_path):
             with open(key_path, 'r', encoding='utf-8') as fh:
                 key = fh.read().strip()
-                if key:
-                    return key
+            if key:
+                return key
 
         key = secrets.token_hex(32)
         with open(key_path, 'w', encoding='utf-8') as fh:
@@ -58,6 +68,7 @@ def create_app() -> Flask:
     app.register_blueprint(contacts_bp)
     app.register_blueprint(scan_bp)
     app.register_blueprint(testbench_bp)
+    app.register_blueprint(update_bp)
     return app
 
 
