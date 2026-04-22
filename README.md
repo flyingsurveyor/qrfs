@@ -168,11 +168,98 @@ It is about:
 
 ---
 
-## 🛠 Installation (Termux)
+Installation
+QRFS starts in plain HTTP by default.
+On both Raspberry Pi / Linux and Termux:
+on the same device, open: `http://127.0.0.1:5000`
+from another device on the same LAN, open: `http://<device-ip>:5000`
+Run `python qrfs.py --debug` only when you explicitly want Flask debug mode.
+The default non-debug path uses Waitress when installed.
+Raspberry Pi / Debian / Ubuntu
+1. Install system packages
+```bash
+sudo apt update
+sudo apt install -y \
+  git \
+  python3 \
+  python3-pip \
+  python3-venv \
+  poppler-utils \
+  libzbar0
+```
+Optional build dependencies, only if `pip install -r requirements.txt` needs to compile native packages:
+```bash
+sudo apt install -y \
+  build-essential \
+  python3-dev \
+  pkg-config \
+  libjpeg-dev \
+  zlib1g-dev \
+  libpng-dev \
+  libffi-dev \
+  libssl-dev \
+  cargo
+```
+2. Clone the repository
+```bash
+git clone https://github.com/flyingsurveyor/qrfs.git
+cd qrfs
+```
+3. Create a virtual environment and install Python dependencies
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+4. Start QRFS
+```bash
+python qrfs.py
+```
+Termux
+1. Install system packages
+```bash
+pkg update
+pkg upgrade -y
+pkg install -y \
+  git \
+  python \
+  zbar \
+  poppler \
+  libjpeg-turbo \
+  libpng
+```
+Optional build dependencies, only if `pip install -r requirements.txt` needs to compile native packages:
+```bash
+pkg install -y \
+  clang \
+  make \
+  pkg-config \
+  ndk-sysroot \
+  rust
+```
+2. Clone the repository
+```bash
+git clone https://github.com/flyingsurveyor/qrfs.git
+cd qrfs
+```
+3. Install Python dependencies
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+4. Start QRFS
+```bash
+python qrfs.py
+```
+Diagnostics
+Check that Poppler and ZBar are available:
+```bash
+which pdftoppm
+python -c "from pyzbar.pyzbar import decode; print('OK')"
+```
+If `pdftoppm` is found and the Python command prints `OK`, the main decoding dependencies are in place.
 
-See INSTALL_TERMUX.md
-
-Runtime note: `python qrfs.py` starts QRFS in plain HTTP by default. On the same device use `http://127.0.0.1:5000`; from another device on the LAN use `http://<IP-del-dispositivo>:5000`. `python qrfs.py --debug` keeps Flask debug mode, while the default non-debug path uses Waitress when installed.
 
 ---
 
