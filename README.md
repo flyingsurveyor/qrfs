@@ -148,13 +148,166 @@ Security relies on:
 
 ---
 
+## 🛠 Installation
+
+QRFS starts in plain HTTP by default.
+
+- On the same device: `http://127.0.0.1:5000`
+- From another device on the same LAN: `http://<device-ip>:5000`
+
+Run `python qrfs.py --debug` only if you explicitly want Flask debug mode.
+The default non-debug path uses Waitress when installed.
+
+### Raspberry Pi / Debian / Ubuntu
+
+#### 1. Install system packages
+
+```bash
+sudo apt update
+sudo apt install -y \
+  git \
+  python3 \
+  python3-pip \
+  python3-venv \
+  poppler-utils \
+  libzbar0
+```
+
+If `pip install -r requirements.txt` needs to compile native packages, install these optional build dependencies too:
+
+```bash
+sudo apt install -y \
+  build-essential \
+  python3-dev \
+  pkg-config \
+  libjpeg-dev \
+  zlib1g-dev \
+  libpng-dev \
+  libffi-dev \
+  libssl-dev \
+  cargo
+```
+
+#### 2. Clone the repository
+
+```bash
+git clone https://github.com/flyingsurveyor/qrfs.git
+cd qrfs
+```
+
+#### 3. Create a virtual environment and install Python dependencies
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+#### 4. Start QRFS
+
+```bash
+python qrfs.py
+```
+
+### Termux
+
+#### 1. Install system packages
+
+```bash
+pkg update
+pkg upgrade -y
+pkg install -y \
+  git \
+  python \
+  zbar \
+  poppler \
+  libjpeg-turbo \
+  libpng
+```
+
+If `pip install -r requirements.txt` needs to compile native packages, install these optional build dependencies too:
+
+```bash
+pkg install -y \
+  clang \
+  make \
+  pkg-config \
+  ndk-sysroot \
+  rust
+```
+
+#### 2. Clone the repository
+
+```bash
+git clone https://github.com/flyingsurveyor/qrfs.git
+cd qrfs
+```
+
+#### 3. Install Python dependencies
+
+```bash
+python -m pip install --upgrade pip
+python -m pip install -r requirements.txt
+```
+
+#### 4. Start QRFS
+
+```bash
+python qrfs.py
+```
+
+### Quick dependency check
+
+```bash
+which pdftoppm
+python -c "from pyzbar.pyzbar import decode; print('OK')"
+```
+
+If `pdftoppm` is found and the Python command prints `OK`, the main decoding dependencies are in place.
+
+---
+
 ## 🌍 Future Directions
 
-- Better scanning UX
-- Improved FEC strategies
-- Standardization of QRFS format
-- Physical medium optimization (metal, engraving, etc.)
-- Time capsule edition
+QRFS is still experimental, but its direction is becoming clearer.
+
+The goal is not to turn it into a generic storage system or a novelty QR project.
+
+The real direction is to make QRFS more reliable, more self-describing, and more useful in degraded, offline, hostile, or infrastructure-poor environments.
+
+Possible future directions include:
+
+- **Better scanning UX**  
+  Faster and more reliable recovery from photos and scans, with clearer feedback about missing, duplicated, or damaged chunks.
+
+- **Improved FEC strategies**  
+  Smarter redundancy profiles, better real-world recovery behavior, and stronger resilience to partial page loss or poor image quality.
+
+- **Standardization of the QRFS format**  
+  A documented, versioned, implementation-independent format that can be decoded and reconstructed without relying on a single codebase.
+
+- **Physical medium optimization**  
+  Better support for paper, low-quality printers, difficult lighting, and more durable media such as metal, engraving, or other long-life physical substrates.
+
+- **Time capsule / archival edition**  
+  A more conservative and self-describing archival mode designed for long-term preservation, with human-readable recovery guidance and format documentation.
+
+- **Paranoid Mode for politically harsh environments**  
+  A minimal-disclosure mode that reduces metadata leakage, avoids unnecessary identifiers, and makes physical transport safer in hostile conditions.
+
+- **Transport to and from Reticulum networks**  
+  Using QRFS as a physical bridge for disconnected or delayed networks: exporting payloads from Reticulum, carrying them physically, and reinjecting them later.
+
+- **Paper computing / executable capsules**  
+  Exploring whether small scripts, bootstrap tools, configurations, and operational payloads can travel physically on paper as signed, inspectable, self-describing QRFS bundles.
+
+- **Field-ready operational profiles**  
+  Clear presets such as archive, rugged field, balanced, or dense mode, so QRFS can be tuned for real-world use instead of only lab conditions.
+
+In the long term, QRFS may evolve from a simple encrypted QR transport tool into something broader:
+
+> **a physical carrier for data, instructions, and minimal capabilities across disconnected worlds**
 
 ---
 
@@ -168,26 +321,9 @@ It is about:
 
 ---
 
-## 🛠 Installation (Termux)
-
-See INSTALL_TERMUX.md
-
-Runtime note: `python qrfs.py` starts QRFS in plain HTTP by default. On the same device use `http://127.0.0.1:5000`; from another device on the LAN use `http://<IP-del-dispositivo>:5000`. `python qrfs.py --debug` keeps Flask debug mode, while the default non-debug path uses Waitress when installed.
-
----
-
 ## 📜 License
 
 QRFS is released under the GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later).
-
----
-
-## 💬 Final Note
-
-QRFS is a niche tool.
-
-But in the right context, it enables something unique:
-offline, encrypted, physical data transmission and storage.
 
 ---
 
