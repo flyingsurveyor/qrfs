@@ -1,4 +1,16 @@
-
+/**
+ * QRFS Rescue — standalone offline browser rescue tool
+ *
+ * This file is the standalone/reference version of the rescue UI logic that is
+ * also inlined inside qrfs/templates/rescue.html for use by the Flask app.
+ * It can be loaded independently in any modern browser alongside the
+ * html5-qrcode library (see qrfs/static/vendor/) to collect and reconstruct
+ * QRFS chunks without running the Python server.
+ *
+ * Usage: open the rescue.html page served by QRFS, or embed this script in your
+ * own offline HTML rescue page together with html5-qrcode-2.3.8.min.js.
+ * No build step is required — this is plain ES2020 JavaScript.
+ */
 const B45 = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 function b45decode(s) {
   const out = [];

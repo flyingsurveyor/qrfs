@@ -1,0 +1,74 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "qrfs"
+version = "0.1.0"
+description = "Physical, offline, encrypted data transport and storage via printable QR codes"
+readme = "README.md"
+license = { text = "AGPL-3.0-or-later" }
+requires-python = ">=3.11"
+authors = [{ name = "FlyingSurveyor", url = "https://github.com/flyingsurveyor" }]
+keywords = [
+    "qr-code",
+    "encryption",
+    "air-gapped",
+    "archival",
+    "optical",
+    "offline",
+    "cryptography",
+    "fec",
+    "reed-solomon",
+]
+
+dependencies = [
+    "Flask>=3.0.0",
+    "qrcode[pil]>=7.4.2",
+    "reportlab>=4.0.0",
+    "cryptography>=42.0.0",
+    "pyzbar>=0.1.9",
+    "Pillow>=10.0.0",
+    "PyNaCl>=1.5.0",
+    "reedsolo>=1.7.0",
+    "waitress>=3.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov",
+    "ruff>=0.6",
+    "bandit[toml]>=1.7",
+]
+
+[project.scripts]
+qrfs = "qrfs.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/flyingsurveyor/qrfs"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["qrfs*"]
+
+[tool.setuptools.package-data]
+qrfs = ["templates/**/*", "static/**/*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP"]
+
+[tool.ruff.lint.per-file-ignores]
+"qrfs/routes/decode.py" = ["F401"]
+"tools/diagnose_pdf.py" = ["E401", "F401", "E701", "E722"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.bandit]
+skips = ["B110", "B112", "B311", "B404", "B603", "B607"]
