@@ -1,5 +1,7 @@
 # QRFS – QR Filesystem
 
+[![CI](https://github.com/flyingsurveyor/qrfs/actions/workflows/ci.yml/badge.svg)](https://github.com/flyingsurveyor/qrfs/actions/workflows/ci.yml)
+
 QRFS is an experimental system to encode encrypted data into printable QR code pages.
 
 It is NOT a traditional filesystem.
@@ -318,6 +320,32 @@ QRFS is not about replacing modern systems.
 It is about:
 
 > **having an alternative when modern systems are unavailable**
+
+---
+
+## 🛠 Development
+
+To set up a development environment:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -e .[dev]
+```
+
+Run the test suite:
+
+```bash
+pytest
+```
+
+Run the linter:
+
+```bash
+ruff check .
+```
+
+CI runs the same checks (`pytest`, `ruff check .`, and `bandit -r qrfs/core`) on every push to `main` and on every pull request, across Python 3.11, 3.12, and 3.13.
 
 ---
 
