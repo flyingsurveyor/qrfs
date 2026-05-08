@@ -7,6 +7,7 @@ from ..core.chunker import reconstruct_from_chunks, parse_chunk
 from ..core.utils import timestamp_slug, b45decode, b45encode
 from ..core.keystore import identity_exists, unlock_identity, get_public_identity_no_password
 from ..core.address_book import find_contact_by_signer
+from ..core.ratelimit import check_kdf_rate_limit
 import json
 import mimetypes
 import os
@@ -616,6 +617,10 @@ def decode_view():
         master_password = request.form.get('master_password', '').strip()
         use_identity = request.form.get('use_identity') == 'on'
 
+        rl_response = check_kdf_rate_limit()
+        if rl_response is not None:
+            return rl_response
+
         try:
             pending, encrypted_blob = _load_pending_state(temp_dir, token)
         except Exception as exc:
@@ -725,6 +730,10 @@ def rescue_view():
         private_key = request.form.get('private_key', '').strip()
         master_password = request.form.get('master_password', '').strip()
         use_identity = request.form.get('use_identity') == 'on'
+
+        rl_response = check_kdf_rate_limit()
+        if rl_response is not None:
+            return rl_response
 
         try:
             pending, encrypted_blob = _load_pending_state(temp_dir, token)
