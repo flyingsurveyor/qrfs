@@ -143,8 +143,8 @@ def test_rate_limiter_resets_after_window(monkeypatch):
         ratelimit.check_kdf_rate_limit()
 
     # Move the clock forward by more than the window using a monkeypatch.
-    original_monotonic = time.monotonic
-    monkeypatch.setattr(time, 'monotonic', lambda: original_monotonic() + ratelimit._WINDOW + 1)
+    base_time = time.monotonic()
+    monkeypatch.setattr(time, 'monotonic', lambda: base_time + ratelimit._WINDOW + 1)
 
     result = ratelimit.check_kdf_rate_limit()
     assert result is None, 'Attempt after window expired was incorrectly blocked'

@@ -37,7 +37,11 @@ def check_kdf_rate_limit():
     if current_app.config.get('TESTING'):
         return None
 
-    ip: str = (request.remote_addr or '0.0.0.0')  # nosec B104 – not a bind addr
+    # 'unknown' is used as a sentinel for requests with no remote address
+    # (e.g. unit tests or proxies that strip the header).  All such requests
+    # share the same rate-limit bucket which prevents circumvention via a
+    # missing X-Forwarded-For header.
+    ip: str = (request.remote_addr or 'unknown')
     now: float = time.monotonic()
     cutoff: float = now - _WINDOW
 
