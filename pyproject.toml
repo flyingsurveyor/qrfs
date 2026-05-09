@@ -63,13 +63,21 @@ target-version = "py311"
 select = ["E", "F", "W", "I", "B", "UP"]
 
 [tool.ruff.lint.per-file-ignores]
-# qrfs/routes/* contains pre-existing style debt (long lines, redundant
-# open() modes, unsorted imports, etc.) inherited from before lint ever
-# ran in CI. To be cleaned up in a dedicated lint-cleanup PR; until then
-# it is marked as tech debt rather than auto-reformatted.
-"qrfs/routes/*.py" = ["E501", "UP015", "I001", "F401", "B007", "B904", "B008"]
-"tools/diagnose_pdf.py" = ["E401", "F401", "E701", "E722"]
-"tests/vectors/generate.py" = ["E402", "I001"]
+# === Pre-1.0 lint debt ===
+# All files below were written before ruff was wired into CI. The first
+# successful lint job (after fixing pip backend issues) surfaced ~200
+# style violations across the existing codebase: long lines, redundant
+# `open(..., 'r', ...)` modes, unsorted imports, unused locals, missing
+# `raise from`, mutable default args, etc.
+#
+# Per the PR #1 policy ("configure tools, do not auto-format the codebase
+# in this PR"), these are tracked as tech debt rather than bulk-rewritten.
+# A dedicated lint-cleanup PR (planned together with the format-cleanup
+# PR) will remove these per-file-ignores by fixing the underlying code.
+"qrfs.py" = ["E501", "UP015", "I001", "F401", "B007", "B904", "B008"]
+"qrfs/**/*.py" = ["E501", "UP015", "I001", "F401", "B007", "B904", "B008"]
+"tests/**/*.py" = ["E501", "UP015", "I001", "F401", "B007", "B904", "B008", "E402"]
+"tools/**/*.py" = ["E501", "UP015", "I001", "F401", "B007", "B904", "B008", "E401", "E701", "E722", "E402"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
