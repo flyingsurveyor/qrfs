@@ -62,7 +62,8 @@ def _chunk_to_qr_image(chunk: Chunk, ecc_level: str = "M"):
 def _footer_label(chunk: Chunk) -> str:
     if chunk.kind == KIND_DATA:
         return f"D{chunk.index + 1}/{chunk.total}"
-    return f"P{chunk.parity_index + 1}/{max(1, chunk.parity_count)} G{chunk.group_index + 1}"
+    parity_total = chunk.parity_count if chunk.parity_count > 0 else "?"
+    return f"P{chunk.parity_index + 1}/{parity_total} G{chunk.group_index + 1}"
 
 
 def _interleave_page(chunks_on_page: list) -> list:
