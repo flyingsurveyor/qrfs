@@ -1,0 +1,15 @@
+QRFS test vector: small text file.
+
+This file is a fixed ASCII input for the QRFS on-wire format test vectors.
+It is designed to be long enough to produce multiple QRC chunks when chunked
+at a small chunk size, so that the FEC recovery tests can be exercised with
+at least one full group.
+
+The QRFS pipeline:
+  1. Pack this file into a QFSP payload (packaging layer).
+  2. Wrap in a QFSC envelope (cryptographic layer).
+  3. Split into QRC chunks (chunk/FEC layer).
+  4. Encode chunks as Base45 for QR symbol transport.
+
+See docs/FORMAT.md for the wire format specification.
+See tests/vectors/README.md for how to use these vectors.

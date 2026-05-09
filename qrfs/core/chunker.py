@@ -192,7 +192,22 @@ def _build_rs_parity_chunks(file_id: bytes, group_index: int, total_data: int, g
 
 
 
-def make_chunks(blob: bytes, chunk_size: int = 900, fec_group_size: int = 0, fec_parity_count: int = 1, fec_type: str = 'xor') -> List[Chunk]:
+def make_chunks(blob: bytes, chunk_size: int = 900, fec_group_size: int = 0, fec_parity_count: int = 1, fec_type: str = 'xor', *, _file_id: bytes | None = None) -> List[Chunk]:
+    """Split *blob* into a list of :class:`Chunk` objects ready to be serialised.
+
+    Parameters
+    ----------
+    blob:            The binary data to split.
+    chunk_size:      Target payload size per data chunk (must be > 64).
+    fec_group_size:  Data chunks per FEC group (0 = disabled).
+    fec_parity_count: Parity chunks per group (XOR supports only 1).
+    fec_type:        ``'xor'`` or ``'rs'``.
+    _file_id:        *Testing/vector-generation only.* If given, use this
+                     exact 16-byte file identifier instead of
+                     ``os.urandom(16)``.  Must be exactly
+                     :data:`FILE_ID_LEN` bytes.  Default ``None`` preserves
+                     the production behaviour of generating fresh randomness.
+    """
     if chunk_size <= 64:
         raise ValueError('chunk_size too small.')
     if fec_group_size not in (0, 2, 3, 4, 5, 6, 8):
@@ -208,7 +223,12 @@ def make_chunks(blob: bytes, chunk_size: int = 900, fec_group_size: int = 0, fec
     if fec_type == 'rs' and fec_group_size and fec_parity_count >= fec_group_size:
         raise ValueError('With RS, parity must be smaller than the number of data chunks per group.')
 
-    file_id = os.urandom(FILE_ID_LEN)
+    if _file_id is not None:
+        if len(_file_id) != FILE_ID_LEN:
+            raise ValueError(f'_file_id must be exactly {FILE_ID_LEN} bytes.')
+        file_id = _file_id
+    else:
+        file_id = os.urandom(FILE_ID_LEN)
     total = math.ceil(len(blob) / chunk_size)
     data_chunks: List[Chunk] = []
     fec_marker = FEC_NONE if not fec_group_size else (FEC_RS if fec_type == 'rs' else FEC_XOR)

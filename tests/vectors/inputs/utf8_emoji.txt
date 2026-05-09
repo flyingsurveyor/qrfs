@@ -1,0 +1,6 @@
+QRFS emoji test 🔐
+Greek: α β γ
+Japanese: こんにちは
+Emoji: 📄 ✅ 🚀
+Arabic: مرحبا
+End of UTF-8 test.

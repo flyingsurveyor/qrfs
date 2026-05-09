@@ -16,7 +16,25 @@ breaking or incompatible format changes, independently from the app version.
 
 ### Added
 
-- **Default host changed to `127.0.0.1`** (`qrfs/__main__.py`): QRFS now binds
+- **Official byte-level test vectors** for `QFSP v1`, `QFSC v5`, and `QRC3`
+  under `tests/vectors/`, plus a conformance test in `tests/test_vectors.py`.
+  Vectors include all four QFSC modes (clear, clear-signed, password, pubkey)
+  for six representative input files (empty, one-byte, ASCII text, UTF-8/emoji,
+  incompressible, compressible), plus QRC chunk sets for `small_text` with and
+  without XOR FEC.  The manifest `tests/vectors/manifest.json` records the
+  SHA-256 of every file; deterministic files are invariant — any byte change
+  is a format break.  See `tests/vectors/README.md` for the full specification.
+- **`tests/vectors/generate.py`**: standalone generator that reproduces the
+  entire vector tree from fixed fixtures in a single command
+  (`python tests/vectors/generate.py`); supports `--check` mode for CI
+  idempotency verification.
+- **Optional kw-only parameters** added to `qrfs/core/crypto_utils.py`
+  (`encrypt_file_payload_password`: `_salt`, `_nonce`) and
+  `qrfs/core/chunker.py` (`make_chunks`: `_file_id`) to allow injection of
+  fixed entropy for vector generation.  Defaults preserve existing production
+  behaviour (fresh randomness from `os.urandom`).  No call site was changed.
+- **`slow` pytest mark** registered in `pyproject.toml` for tests dominated
+  by Argon2id key derivation.  Fast local iteration: `pytest -m 'not slow'`. (`qrfs/__main__.py`): QRFS now binds
   to loopback by default.  A fresh `python qrfs.py` is not reachable from the
   network unless the user opts in.  **Migration:** users who relied on the old
   `0.0.0.0` default must now pass `--lan` (or `QRFS_LAN=1`) explicitly.
