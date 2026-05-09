@@ -272,7 +272,7 @@ def generate(out: Path) -> dict[str, Any]:
     # -- manifest.json --------------------------------------------------------
     manifest: dict[str, Any] = {
         "qrfs_format_versions": {"QFSP": 1, "QFSC": 5, "QRC": 3},
-        "generated_at": "2026-05-09T00:00:00Z",
+        "generated_at": "2026-05-09T13:52:56Z",
         "generator": "tests/vectors/generate.py",
         "fixtures": {
             "file_id_hex": FILE_ID_HEX,
