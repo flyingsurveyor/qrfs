@@ -3,6 +3,21 @@
 All notable changes to QRFS are documented here.
 This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) conventions.
 
+> ## ⚠️ Pre‑1.0 notice
+>
+> QRFS is in active design. Until version **1.0**, format versions
+> (`QFSP`, `QFSC`, `QRC*`) may be **replaced wholesale** rather than
+> evolved with backward compatibility. Decoders are not required to
+> parse legacy versions during this phase.
+>
+> Backward compatibility commitments — and the corresponding
+> immutable test vectors under `tests/vectors/` — start at QRFS 1.0.
+>
+> Until then, the only stable contract is: **the latest release of
+> QRFS can decode anything produced by the same release.**
+
+---
+
 ## Version note
 
 **App version** (this file) and **format version** are tracked independently.
