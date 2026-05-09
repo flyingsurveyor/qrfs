@@ -36,6 +36,10 @@ breaking or incompatible format changes, independently from the app version.
 
 ### Added
 
+- **Normative format specification: `docs/SPEC-1.0.md`**. The QRFS wire format (`QFSP v1`,
+  `QFSC v6`, `QRC3`) is now fully specified in an RFC-style document that any competent
+  implementer can use to build a conforming encoder/decoder without reading a single line of
+  Python code.
 - Explicit KDF parameters in `QFSC v6` envelope header.
 - Three pre-defined KDF profiles: `interactive`, `default`, `sensitive`.
 - CLI flags `--kdf-profile` and `--kdf-memory/--kdf-time/--kdf-parallel`.

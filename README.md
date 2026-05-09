@@ -11,6 +11,16 @@ It is a:
 
 ---
 
+## 📐 Specification
+
+QRFS is independently re-implementable. The on-wire format (`QFSP v1`, `QFSC v6`, `QRC3`) is
+fully documented in [`docs/SPEC-1.0.md`](docs/SPEC-1.0.md) — an RFC-style specification that
+any competent implementer can use to build a conforming QRFS encoder or decoder **without reading
+a single line of Python code**. The Python package in this repository is the reference
+implementation. Conformance test vectors are in `tests/vectors/`.
+
+---
+
 ## 🧠 What QRFS Is
 
 QRFS allows you to:
