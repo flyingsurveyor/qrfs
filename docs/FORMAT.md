@@ -1,5 +1,9 @@
 # QRFS Format Notes
 
+> **Note**: This document describes implementation details and is intended for QRFS contributors.
+> For the normative format specification suitable for re-implementation, see
+> [SPEC-1.0.md](SPEC-1.0.md).
+
 This document describes the **current on-wire and on-page format** used by QRFS.
 It is written as a practical reference for implementers, auditors, and anyone who wants
 to understand what the software actually emits today.
