@@ -52,6 +52,7 @@ if "qrfs" not in sys.modules:
 
 from qrfs.core.packaging import pack_file_payload  # noqa: E402
 from qrfs.core.crypto_utils import (  # noqa: E402
+    KDF_PROFILES,
     encrypt_file_payload_clear,
     encrypt_file_payload_password,
     encrypt_file_payload_pubkey,
@@ -68,8 +69,7 @@ FILE_ID_HEX = "00112233445566778899aabbccddeeff"
 SALT_HEX = "0123456789abcdef0123456789abcdef"
 NONCE_HEX = "deadbeefcafebabedeadbeef"
 PASSWORD = "correct horse battery staple xx"
-ARGON2_OPSLIMIT = 3
-ARGON2_MEMLIMIT_MIB = 64
+PASSWORD_KDF_PROFILES = ("interactive", "default", "sensitive")
 
 # 32-byte raw keys (fixed for reproducibility)
 _RECIPIENT_SK_RAW = bytes([0xEC] * 32)  # X25519 private key seed
@@ -222,8 +222,15 @@ def generate(out: Path) -> dict[str, Any]:
         record(f"envelopes/clear_signed/{stem}.qfsc", clear_signed, deterministic=True)
 
         # mode 1 — password, fixed salt + nonce → fully deterministic
-        pw_env = encrypt_file_payload_password(qfsp, PASSWORD, _salt=SALT, _nonce=NONCE)
-        record(f"envelopes/password/{stem}.qfsc", pw_env, deterministic=True)
+        for profile_name in PASSWORD_KDF_PROFILES:
+            pw_env = encrypt_file_payload_password(
+                qfsp,
+                PASSWORD,
+                kdf_profile=profile_name,
+                _salt=SALT,
+                _nonce=NONCE,
+            )
+            record(f"envelopes/password_{profile_name}/{stem}.qfsc", pw_env, deterministic=True)
 
         # mode 2 — pubkey; SealedBox ephemeral key is non-deterministic
         pk_env = encrypt_file_payload_pubkey(qfsp, RECIPIENT_PK_B64)
@@ -271,16 +278,25 @@ def generate(out: Path) -> dict[str, Any]:
 
     # -- manifest.json --------------------------------------------------------
     manifest: dict[str, Any] = {
-        "qrfs_format_versions": {"QFSP": 1, "QFSC": 5, "QRC": 3},
-        "generated_at": "2026-05-09T13:52:56Z",
+        "qrfs_format_versions": {"QFSP": 1, "QFSC": 6, "QRC": 3},
+        "generated_at": "2026-05-09T15:03:27Z",
         "generator": "tests/vectors/generate.py",
         "fixtures": {
             "file_id_hex": FILE_ID_HEX,
             "argon2_salt_hex": SALT_HEX,
             "aes_gcm_nonce_hex": NONCE_HEX,
             "password": PASSWORD,
-            "argon2id_opslimit": ARGON2_OPSLIMIT,
-            "argon2id_memlimit_mib": ARGON2_MEMLIMIT_MIB,
+            "kdf_profiles": {
+                name: {
+                    "kdf_algorithm": 1,
+                    "kdf_memory_kib": KDF_PROFILES[name].memory_kib,
+                    "kdf_time_cost": KDF_PROFILES[name].time_cost,
+                    "kdf_parallelism": KDF_PROFILES[name].parallelism,
+                    "kdf_salt_length": 16,
+                    "kdf_output_length": 32,
+                }
+                for name in PASSWORD_KDF_PROFILES
+            },
             "chunk_size_for_vectors": CHUNK_SIZE_FOR_VECTORS,
         },
         "files": manifest_files,

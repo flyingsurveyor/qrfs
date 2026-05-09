@@ -24,6 +24,14 @@
       <input type="text" name="password" value="testbench-password">
     </label>
 
+    <label>KDF profile
+      <select name="kdf_profile">
+        <option value="interactive">Interactive (64 MiB)</option>
+        <option value="default" selected>Default (256 MiB)</option>
+        <option value="sensitive">Sensitive (1 GiB)</option>
+      </select>
+    </label>
+
     <label>Synthetic data pattern
       <select name="pattern">
         <option value="mixed">Mixed</option>

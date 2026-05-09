@@ -109,7 +109,7 @@ The cryptographic transport blob begins with the ASCII magic:
 QFSC
 ```
 
-Current version: **5**
+Current version: **6**
 
 ### Supported modes
 
@@ -166,21 +166,30 @@ Layout:
 
 ```text
 magic      4 bytes
-version    1 byte
+version    1 byte   = 6
 mode       1 byte   = 1
 flags      1 byte
 salt       16 bytes
 nonce      12 bytes
+kdf_algorithm      1 byte    uint8 (0x01 = Argon2id)
+kdf_memory_kib     4 bytes   uint32 big-endian
+kdf_time_cost      1 byte    uint8
+kdf_parallelism    1 byte    uint8
+kdf_salt_length    1 byte    uint8 (currently 16)
+kdf_output_length  1 byte    uint8 (currently 32)
 signer     40 bytes if signed
 ciphertext+tag   remaining bytes
 signature  64 bytes if signed
 ```
 
-Current Argon2id parameters in the code:
+Current built-in KDF profiles:
 
-- output key length: 32 bytes
-- opslimit: 3
-- memlimit: 64 MiB
+- `interactive`: 64 MiB (`65536 KiB`), time cost `3`, parallelism `1`
+- `default`: 256 MiB (`262144 KiB`), time cost `3`, parallelism `1`
+- `sensitive`: 1 GiB (`1048576 KiB`), time cost `4`, parallelism `1`
+
+Default profile for new password envelopes is `default` (256 MiB).
+Decoders always use the KDF parameters embedded in the envelope header.
 
 Current minimum password length enforced by the code: **14 characters**.
 
@@ -229,6 +238,8 @@ signature  64 bytes if signed
 - Even in clear mode, a sender may still sign the payload.
 - AES-GCM authenticates the transport headers via AAD.
 - The output of the crypto layer becomes the input to chunking.
+- `QFSC v5` is not supported. QRFS is pre-1.0 and does not commit to backward
+  compatibility for envelope versions.
 
 ---
 
@@ -539,7 +550,7 @@ document lives in `tests/vectors/`.  Every file in that directory is listed
 in `tests/vectors/manifest.json` together with its SHA-256 digest and a
 `"deterministic"` flag.
 
-For `QFSP v1`, `QFSC v5`, and `QRC3`, the vectors in `tests/vectors/` are
+For `QFSP v1`, `QFSC v6`, and `QRC3`, the vectors in `tests/vectors/` are
 the authoritative reference.  Any byte change to a `deterministic: true` file
 is a **format break** and must come with a version bump.
 

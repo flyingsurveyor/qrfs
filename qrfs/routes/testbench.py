@@ -12,6 +12,7 @@ from flask import (
     url_for,
 )
 
+from ..core.crypto_utils import resolve_kdf_parameters
 from ..core.testbench import run_testbench
 from ..core.utils import timestamp_slug
 
@@ -34,6 +35,7 @@ def testbench_view():
         password = (
             request.form.get("password", "testbench-password") or "testbench-password"
         ).strip()
+        kdf_profile = (request.form.get("kdf_profile", "default") or "default").strip().lower()
         remove_mode = (request.form.get("remove_mode", "single_any") or "single_any").strip()
         pattern = (request.form.get("pattern", "mixed") or "mixed").strip()
         compress = request.form.get("compress") == "on"
@@ -47,6 +49,8 @@ def testbench_view():
                 "For Reed-Solomon, parity chunks per group must be "
                 "smaller than the number of data chunks."
             )
+        if encryption_mode == "password":
+            resolve_kdf_parameters(kdf_profile=kdf_profile)
     except Exception as exc:
         flash(f"Invalid testbench parameters: {exc}", "error")
         return redirect(url_for("testbench.testbench_view"))
@@ -57,6 +61,7 @@ def testbench_view():
             trials=trials,
             encryption_mode=encryption_mode,
             password=password,
+            kdf_profile=kdf_profile,
             chunk_size=chunk_size,
             fec_group_size=fec_group_size,
             compress=compress,

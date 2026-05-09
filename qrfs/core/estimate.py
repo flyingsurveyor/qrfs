@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 QR_PER_PAGE = 30
 CHUNK_HEADER_LEN = 40  # conservative estimate for QRC3 with extended FEC fields
-CRYPTO_HEADER_LEN = 33  # QFSC + version + salt + nonce
+CRYPTO_HEADER_LEN = 44  # QFSC v6 password header base incl. explicit 9-byte KDF block
 AEAD_TAG_LEN = 16
 
 

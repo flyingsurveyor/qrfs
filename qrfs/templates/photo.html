@@ -133,6 +133,15 @@
             <input type="password" name="password_confirm" minlength="14" placeholder="Repeat the same password">
           </label>
         </div>
+        <label>
+          <span>KDF profile</span>
+          <select name="kdf_profile">
+            <option value="interactive">Interactive (64 MiB, ~0.3 s)</option>
+            <option value="default" selected>Default (256 MiB, ~1.2 s, recommended)</option>
+            <option value="sensitive">Sensitive (1 GiB, ~6 s)</option>
+          </select>
+          <small>Higher profiles are slower but increase password-guessing resistance.</small>
+        </label>
       </div>
 
       <div id="pubkey-panel" class="stack-sm is-hidden">
