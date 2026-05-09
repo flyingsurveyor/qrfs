@@ -942,7 +942,7 @@ violates the following:
 | `QFSC` version ≠ 6 (other) | "Unsupported cryptographic version: N" |
 | `QFSC` unknown mode | "Unsupported encryption mode: N" |
 | AES-GCM tag verification failure | "Wrong password or corrupted data." |
-| Ed25519 signature verification failure | "Digital signature non valida." |
+| Ed25519 signature verification failure | "Digital signature non valida." <!-- TODO(post-spec): this error message is in Italian; a future code fix should use "Invalid digital signature." --> |
 | `QRC3` magic ≠ `"QRC3"` | "QR payload has an invalid chunk magic header." |
 | `QRC3` version ≠ 3 | "Unsupported chunk version: N" |
 | `QRC3` chunks with mismatched `file_id` | "Chunks belong to different files." |
