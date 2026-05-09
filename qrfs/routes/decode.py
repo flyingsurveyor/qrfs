@@ -288,7 +288,7 @@ def _collect_manual_chunks(raw_text: str) -> tuple[list[bytes], dict]:
             errors.append(f"Line {idx}: invalid Base45 ({exc}).")
             continue
         if not decoded.startswith(b"QRC3"):
-            errors.append(f"Line {idx}: the text does not look like a valid QRFS chunk.")
+            errors.append(f"Line {idx}: not a valid QRFS chunk (QRC3 is required).")
             continue
         if decoded in seen:
             stats["duplicates_discarded"] += 1
@@ -1003,7 +1003,7 @@ def _collect_camera_chunks(raw_text: str) -> tuple[list[bytes], dict]:
         except Exception as exc:
             raise ValueError(f"Camera item {idx}: invalid Base45 ({exc}).") from exc
         if not decoded.startswith(b"QRC3"):
-            raise ValueError(f"Camera item {idx}: does not look like a QRFS chunk.")
+            raise ValueError(f"Camera item {idx}: does not look like a valid QRC3 QRFS chunk.")
         if decoded in seen:
             stats["duplicates_discarded"] += 1
             continue

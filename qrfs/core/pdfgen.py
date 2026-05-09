@@ -60,6 +60,7 @@ def _chunk_to_qr_image(chunk: Chunk, ecc_level: str = "M"):
 
 
 def _footer_label(chunk: Chunk) -> str:
+    """Render chunk footer labels as `Dn/total` for data or `Pn/count Gg` for parity."""
     if chunk.kind == KIND_DATA:
         return f"D{chunk.index + 1}/{chunk.total}"
     parity_total = chunk.parity_count if chunk.parity_count > 0 else "?"
