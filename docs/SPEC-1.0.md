@@ -443,7 +443,7 @@ Offset | Length     | Type   | Field             | Description
 6      | 1          | uint8  | flags             | 0x00 (unsigned)
 7      | 8          | bytes  | recipient_key_id  | First 8 bytes of SHA-256(recipient_pub_key)
 15     | 2          | uint16 | sealed_len        | Length of sealed session key blob (typically 80)
-17     | 12         | bytes  | nonce             | AES-GCM nonce (CSPRNG; see §8.5)
+17     | 12         | bytes  | nonce             | AES-GCM nonce (CSPRNG; see §8.2)
 29     | sealed_len | bytes  | sealed            | NaCl SealedBox output (see §4.6.1)
 29+SL  | ct_len     | bytes  | ciphertext_tag    | AES-256-GCM ciphertext + 16-byte auth tag
 ```
