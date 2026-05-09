@@ -11,7 +11,7 @@ from reportlab.lib.units import mm
 from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 
-from .chunker import Chunk
+from .chunker import KIND_DATA, Chunk
 
 PAGE_WIDTH, PAGE_HEIGHT = A4
 MARGIN = 10 * mm
@@ -60,7 +60,7 @@ def _chunk_to_qr_image(chunk: Chunk, ecc_level: str = "M"):
 
 
 def _footer_label(chunk: Chunk) -> str:
-    if chunk.kind == 0:
+    if chunk.kind == KIND_DATA:
         return f"D{chunk.index + 1}/{chunk.total}"
     return f"P{chunk.parity_index + 1}/{max(1, chunk.parity_count)} G{chunk.group_index + 1}"
 
