@@ -9,7 +9,7 @@ description = "Physical, offline, encrypted data transport and storage via print
 readme = "README.md"
 license = { text = "AGPL-3.0-or-later" }
 requires-python = ">=3.11"
-authors = [{ name = "FlyingSurveyor", url = "https://github.com/flyingsurveyor" }]
+authors = [{ name = "FlyingSurveyor" }]
 keywords = [
     "qr-code",
     "encryption",
