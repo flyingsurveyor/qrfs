@@ -2,17 +2,17 @@ from datetime import datetime
 
 
 def human_bytes(size: int) -> str:
-    units = ['B', 'KB', 'MB', 'GB']
+    units = ["B", "KB", "MB", "GB"]
     value = float(size)
     for unit in units:
         if value < 1024.0 or unit == units[-1]:
-            return f'{value:.1f} {unit}'
+            return f"{value:.1f} {unit}"
         value /= 1024.0
-    return f'{size} B'
+    return f"{size} B"
 
 
 def timestamp_slug() -> str:
-    return datetime.now().strftime('%Y%m%d_%H%M%S_%f')
+    return datetime.now().strftime("%Y%m%d_%H%M%S_%f")
 
 
 def percent_str(value: float) -> str:
@@ -39,7 +39,7 @@ def b45encode(data: bytes) -> str:
         b, a = divmod(data[-1], 45)
         out.append(_B45[a])
         out.append(_B45[b])
-    return ''.join(out)
+    return "".join(out)
 
 
 def b45decode(s: str) -> bytes:

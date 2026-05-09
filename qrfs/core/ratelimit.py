@@ -12,7 +12,7 @@ from collections import deque
 
 from flask import Response, current_app, request
 
-_WINDOW: int = 60          # seconds
+_WINDOW: int = 60  # seconds
 _MAX_ATTEMPTS: int = 5
 
 _lock: threading.Lock = threading.Lock()
@@ -34,14 +34,14 @@ def check_kdf_rate_limit():
         if response is not None:
             return response
     """
-    if current_app.config.get('TESTING'):
+    if current_app.config.get("TESTING"):
         return None
 
     # 'unknown' is used as a sentinel for requests with no remote address
     # (e.g. unit tests or proxies that strip the header).  All such requests
     # share the same rate-limit bucket which prevents circumvention via a
     # missing X-Forwarded-For header.
-    ip: str = (request.remote_addr or 'unknown')
+    ip: str = request.remote_addr or "unknown"
     now: float = time.monotonic()
     cutoff: float = now - _WINDOW
 
@@ -59,9 +59,9 @@ def check_kdf_rate_limit():
             # Use flask.Response directly so no app context is needed for
             # serialisation — this keeps the rate limiter testable without
             # a running Flask application.
-            body = json.dumps({'error': 'too_many_attempts', 'retry_after': retry_after})
-            response = Response(body, status=429, mimetype='application/json')
-            response.headers['Retry-After'] = str(retry_after)
+            body = json.dumps({"error": "too_many_attempts", "retry_after": retry_after})
+            response = Response(body, status=429, mimetype="application/json")
+            response.headers["Retry-After"] = str(retry_after)
             return response
 
         q.append(now)

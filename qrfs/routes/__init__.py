@@ -7,11 +7,11 @@ from .testbench import testbench_bp
 from .update import update_bp
 
 __all__ = [
-    'encode_bp',
-    'decode_bp',
-    'keys_bp',
-    'contacts_bp',
-    'scan_bp',
-    'testbench_bp',
-    'update_bp',
+    "encode_bp",
+    "decode_bp",
+    "keys_bp",
+    "contacts_bp",
+    "scan_bp",
+    "testbench_bp",
+    "update_bp",
 ]

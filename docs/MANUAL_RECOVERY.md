@@ -85,10 +85,8 @@ Each QRFS QR symbol carries one chunk blob encoded with Base45.
 In Python, the QRFS implementation uses the logic in `qrfs/core/utils.py`.
 A compatible decoder can be implemented independently.
 
-A decoded chunk must begin with one of these magics:
+A decoded chunk must begin with:
 
-- `QRC1`
-- `QRC2`
 - `QRC3`
 
 If it does not, either:
@@ -488,7 +486,7 @@ If you are building an independent recovery tool, implement recovery in this ord
 7. password mode
 8. public-key mode
 9. signature verification
-10. legacy `QRC1` and `QRC2` support if needed
+10. optional UI/automation around chunk collection
 
 That order gets you a working recovery path quickly while keeping the implementation understandable.
 

@@ -58,7 +58,7 @@ def _parse_arg_value(flag: str) -> str | None:
 
 
 def _env_port(default: int = 5000) -> int:
-    raw = _parse_arg_value('--port') or (os.environ.get('QRFS_PORT') or '').strip()
+    raw = _parse_arg_value("--port") or (os.environ.get("QRFS_PORT") or "").strip()
     if not raw:
         return default
     try:
@@ -74,35 +74,36 @@ def _env_port(default: int = 5000) -> int:
 # Startup banner
 # ---------------------------------------------------------------------------
 
+
 def _print_banner(host: str, port: int, use_https: bool, cert_path: Path | None) -> None:
-    scheme = 'https' if use_https else 'http'
-    url = f'{scheme}://{host}:{port}'
+    scheme = "https" if use_https else "http"
+    url = f"{scheme}://{host}:{port}"
 
     if use_https and cert_path is not None:
         fingerprint = cert_fingerprint(cert_path)
-        print(f'[QRFS] Listening on {url}  (self-signed cert)', file=sys.stderr)
-        print(f'[QRFS] Cert SHA256 fingerprint: {fingerprint}', file=sys.stderr)
+        print(f"[QRFS] Listening on {url}  (self-signed cert)", file=sys.stderr)
+        print(f"[QRFS] Cert SHA256 fingerprint: {fingerprint}", file=sys.stderr)
         if not is_loopback(host):
-            print('[QRFS] Pin this fingerprint on remote devices to detect MITM.', file=sys.stderr)
+            print("[QRFS] Pin this fingerprint on remote devices to detect MITM.", file=sys.stderr)
         else:
             print(
-                '[QRFS] Reachable only from this device. Use --lan to expose on the network.',
+                "[QRFS] Reachable only from this device. Use --lan to expose on the network.",
                 file=sys.stderr,
             )
     elif is_loopback(host):
-        print(f'[QRFS] Listening on {url}', file=sys.stderr)
+        print(f"[QRFS] Listening on {url}", file=sys.stderr)
         print(
-            '[QRFS] Reachable only from this device. Use --lan to expose on the network.',
+            "[QRFS] Reachable only from this device. Use --lan to expose on the network.",
             file=sys.stderr,
         )
     else:
-        print(f'[QRFS] WARNING: Listening on {url} (all interfaces, plain HTTP).', file=sys.stderr)
+        print(f"[QRFS] WARNING: Listening on {url} (all interfaces, plain HTTP).", file=sys.stderr)
         print(  # noqa: E501
-            '[QRFS] WARNING: Anyone on this network can read passwords and uploaded files.',
+            "[QRFS] WARNING: Anyone on this network can read passwords and uploaded files.",
             file=sys.stderr,
         )
         print(
-            '[QRFS] WARNING: For untrusted networks, add --https or stay on the default 127.0.0.1.',
+            "[QRFS] WARNING: For untrusted networks, add --https or stay on the default 127.0.0.1.",
             file=sys.stderr,
         )
 
@@ -111,21 +112,22 @@ def _print_banner(host: str, port: int, use_https: bool, cert_path: Path | None)
 # Main entry point
 # ---------------------------------------------------------------------------
 
+
 def main() -> None:
     # Deferred import so that importing this module for its pure helpers does
     # not trigger the full qrfs package (Flask app, routes, pyzbar …).
     from qrfs import app
 
-    use_debug = '--debug' in sys.argv or _env_flag('QRFS_DEBUG')
-    force_flask_dev = '--flask-dev' in sys.argv or _env_flag('QRFS_FLASK_DEV')
-    use_https = '--https' in sys.argv or _env_flag('QRFS_HTTPS')
+    use_debug = "--debug" in sys.argv or _env_flag("QRFS_DEBUG")
+    force_flask_dev = "--flask-dev" in sys.argv or _env_flag("QRFS_FLASK_DEV")
+    use_https = "--https" in sys.argv or _env_flag("QRFS_HTTPS")
 
     host = resolve_host(sys.argv, dict(os.environ))
     port = _env_port(5000)
 
     # --cert / --key override the auto-generated self-signed cert.
-    cert_arg = _parse_arg_value('--cert') or os.environ.get('QRFS_CERT', '').strip() or None
-    key_arg = _parse_arg_value('--key') or os.environ.get('QRFS_KEY', '').strip() or None
+    cert_arg = _parse_arg_value("--cert") or os.environ.get("QRFS_CERT", "").strip() or None
+    key_arg = _parse_arg_value("--key") or os.environ.get("QRFS_KEY", "").strip() or None
 
     cert_path: Path | None = None
     key_path: Path | None = None
@@ -137,12 +139,12 @@ def main() -> None:
         else:
             # Auto-generate a self-signed cert under data/tls/.
             base_dir = Path(__file__).parent.parent  # repo root
-            tls_dir = base_dir / 'data' / 'tls'
+            tls_dir = base_dir / "data" / "tls"
 
             # Collect SAN hostnames: always localhost + 127.0.0.1 (added by
             # ensure_self_signed_cert); also include LAN IPs when binding to
             # all interfaces.
-            san_hostnames: list[str] = [] if host in ('0.0.0.0', '::') else [host]
+            san_hostnames: list[str] = [] if host in ("0.0.0.0", "::") else [host]
             if not is_loopback(host):
                 san_hostnames.extend(detect_lan_ips())
 
@@ -182,5 +184,5 @@ def main() -> None:
     serve(app, host=host, port=port)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

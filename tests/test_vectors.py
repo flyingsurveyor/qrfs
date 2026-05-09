@@ -26,7 +26,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
-_REPO_ROOT  = Path(__file__).parent.parent
+_REPO_ROOT = Path(__file__).parent.parent
 VECTORS_DIR = Path(__file__).parent / "vectors"
 MANIFEST_PATH = VECTORS_DIR / "manifest.json"
 
@@ -101,9 +101,7 @@ def test_deterministic_files_match_recorded_sha256() -> None:
         path = VECTORS_DIR / entry["path"]
         actual = _sha256(path.read_bytes())
         if actual != entry["sha256"]:
-            failures.append(
-                f"{entry['path']}:\n  expected {entry['sha256']}\n  got      {actual}"
-            )
+            failures.append(f"{entry['path']}:\n  expected {entry['sha256']}\n  got      {actual}")
     assert not failures, "\n".join(failures)
 
 
@@ -244,7 +242,7 @@ def test_qrc3_chunks_reconstruct_with_xor_fec_after_loss() -> None:
     )
 
     chunks_dir = VECTORS_DIR / "chunks/small_text_fec_xor"
-    expected   = (VECTORS_DIR / "envelopes/clear/small_text.qfsc").read_bytes()
+    expected = (VECTORS_DIR / "envelopes/clear/small_text.qfsc").read_bytes()
 
     # Load all chunk files
     all_files = sorted(chunks_dir.glob("*.qrc"))
@@ -267,8 +265,7 @@ def test_qrc3_chunks_reconstruct_with_xor_fec_after_loss() -> None:
 
     assert blob == expected, "FEC XOR recovery mismatch"
     assert info["fec_recovered_chunks"] >= len(to_drop), (
-        f"Expected at least {len(to_drop)} recovered chunks, "
-        f"got {info['fec_recovered_chunks']}"
+        f"Expected at least {len(to_drop)} recovered chunks, got {info['fec_recovered_chunks']}"
     )
 
 

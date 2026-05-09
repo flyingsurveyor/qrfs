@@ -18,23 +18,23 @@ BASE_DIR = os.path.dirname(PACKAGE_DIR)
 
 
 def _get_secret_key() -> str:
-    env_key = os.environ.get('QRFS_SECRET_KEY')
+    env_key = os.environ.get("QRFS_SECRET_KEY")
     if env_key:
         return env_key
 
-    data_dir = os.path.join(BASE_DIR, 'data')
+    data_dir = os.path.join(BASE_DIR, "data")
     os.makedirs(data_dir, exist_ok=True)
-    key_path = os.path.join(data_dir, '.flask_secret_key')
+    key_path = os.path.join(data_dir, ".flask_secret_key")
 
     try:
         if os.path.exists(key_path):
-            with open(key_path, 'r', encoding='utf-8') as fh:
+            with open(key_path, encoding="utf-8") as fh:
                 key = fh.read().strip()
             if key:
                 return key
 
         key = secrets.token_hex(32)
-        with open(key_path, 'w', encoding='utf-8') as fh:
+        with open(key_path, "w", encoding="utf-8") as fh:
             fh.write(key)
         try:
             os.chmod(key_path, 0o600)
@@ -47,20 +47,20 @@ def _get_secret_key() -> str:
 
 
 def create_app() -> Flask:
-    app = Flask(__name__, template_folder='templates', static_folder='static')
-    app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024 * 100  # 100 MB upload cap
-    app.config['SECRET_KEY'] = _get_secret_key()
-    app.config['BASE_DIR'] = BASE_DIR
-    app.config['UPLOAD_DIR'] = os.path.join(BASE_DIR, 'data', 'uploads')
-    app.config['OUTPUT_DIR'] = os.path.join(BASE_DIR, 'data', 'outputs')
-    app.config['TEMP_DIR'] = os.path.join(BASE_DIR, 'data', 'temp')
+    app = Flask(__name__, template_folder="templates", static_folder="static")
+    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 100  # 100 MB upload cap
+    app.config["SECRET_KEY"] = _get_secret_key()
+    app.config["BASE_DIR"] = BASE_DIR
+    app.config["UPLOAD_DIR"] = os.path.join(BASE_DIR, "data", "uploads")
+    app.config["OUTPUT_DIR"] = os.path.join(BASE_DIR, "data", "outputs")
+    app.config["TEMP_DIR"] = os.path.join(BASE_DIR, "data", "temp")
 
-    for key in ('UPLOAD_DIR', 'OUTPUT_DIR', 'TEMP_DIR'):
+    for key in ("UPLOAD_DIR", "OUTPUT_DIR", "TEMP_DIR"):
         os.makedirs(app.config[key], exist_ok=True)
 
-    @app.route('/')
+    @app.route("/")
     def index():
-        return render_template('index.html')
+        return render_template("index.html")
 
     app.register_blueprint(encode_bp)
     app.register_blueprint(decode_bp)

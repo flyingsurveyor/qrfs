@@ -98,6 +98,14 @@ breaking or incompatible format changes, independently from the app version.
 
 ### Changed
 
+- **Chunk parity index semantics (`QRC3`)**: parity chunks now carry the correct
+  local `parity_index` within each FEC group instead of reusing `group_index`.
+  **Pre-1.0 break, no migration provided.**
+- **Chunk page footer labels** now distinguish data and parity chunks:
+  `D{index+1}/{total}` for data and
+  `P{parity_index+1}/{parity_count} G{group_index+1}` for parity.
+- **Chunk encoding/decoding paths** are now `QRC3`-only in Python and browser
+  rescue paths.
 - **Default bind host**: changed from `0.0.0.0` to `127.0.0.1`.
   **Breaking change for users who relied on the old default.**
   Migration: pass `--lan` or set `QRFS_LAN=1` to restore the previous
@@ -110,12 +118,23 @@ breaking or incompatible format changes, independently from the app version.
   `__pycache__/`, `*.pyc`, `dist/`, `build/`, `*.egg-info/`,
   `.pytest_cache/`, `.ruff_cache/`, `.coverage`, `htmlcov/`, and
   `data/` subdirectories.
+- **CI lint policy**: `.github/workflows/ci.yml` lint job is blocking again
+  (`Lint`, without `continue-on-error`).
+
+### Fixed
+
+- Cleared the pre-1.0 repository-wide ruff debt and removed broad
+  per-file ignores, keeping only a narrow `tests/vectors/generate.py`
+  exception for intentional import-order behavior.
 
 ### Removed
 
 - **`qrfs.py.bak`**: stale backup file removed from the repository.
 - **`rescue.js`** (repo root): moved to `tools/rescue.js` (see above).
+- Legacy chunk-format support (`QRC1`, `QRC2`) in decoders and chunk-header
+  parsing paths.
 
 ### Format versions (unchanged)
 
-`QFSP v1` · `QFSC v5` · `QRC3` — no on-wire format changes in this release.
+`QFSP v1` · `QFSC v5` · `QRC3` — versions unchanged in this release.
+Pre-1.0 format behavior changed without a version bump (see entries above).

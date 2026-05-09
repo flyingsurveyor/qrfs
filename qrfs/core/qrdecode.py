@@ -25,23 +25,20 @@ import shutil
 import subprocess
 import tempfile
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 
-from PIL import Image, ImageOps, ImageFilter
+from PIL import Image, ImageFilter, ImageOps
 from pyzbar.pyzbar import decode as zbar_decode
-
 
 # ── Encoder grid layout (mirrors pdfgen.py) ───────────────────────
 _MM = 72.0 / 25.4
-_MARGIN_PT   = 10 * _MM
+_MARGIN_PT = 10 * _MM
 _HEADER_H_PT = 12 * _MM
-_FOOTER_H_PT =  8 * _MM
-_PAGE_W_PT   = 595.28
-_PAGE_H_PT   = 841.89
+_FOOTER_H_PT = 8 * _MM
+_PAGE_W_PT = 595.28
+_PAGE_H_PT = 841.89
 _COLS, _ROWS = 5, 6
 _CELL_W_PT = (_PAGE_W_PT - 2 * _MARGIN_PT) / _COLS
-_CELL_H_PT = (_PAGE_H_PT - _MARGIN_PT - _HEADER_H_PT
-              - _FOOTER_H_PT - _MARGIN_PT) / _ROWS
+_CELL_H_PT = (_PAGE_H_PT - _MARGIN_PT - _HEADER_H_PT - _FOOTER_H_PT - _MARGIN_PT) / _ROWS
 
 
 @dataclass
@@ -59,8 +56,10 @@ class DecodeStats:
 
 # ── Helpers ───────────────────────────────────────────────────────
 
-def _dedupe_extend(output: List[bytes], seen: set,
-                   candidates: List[bytes], stats: DecodeStats) -> int:
+
+def _dedupe_extend(
+    output: list[bytes], seen: set, candidates: list[bytes], stats: DecodeStats
+) -> int:
     added = 0
     for item in candidates:
         if not item:
@@ -76,9 +75,10 @@ def _dedupe_extend(output: List[bytes], seen: set,
     return added
 
 
-def _zbar(img: Image.Image) -> List[bytes]:
+def _zbar(img: Image.Image) -> list[bytes]:
     """Decode QR codes from an image. Handles base45, legacy raw, and text QRs."""
     from .utils import b45decode
+
     results = []
     for o in zbar_decode(img):
         if o.type != "QRCODE":
@@ -86,15 +86,15 @@ def _zbar(img: Image.Image) -> List[bytes]:
         raw = o.data
         # Try base45 → QRFS chunk
         try:
-            text = raw.decode('ascii')
+            text = raw.decode("ascii")
             decoded = b45decode(text)
-            if decoded[:4] in (b'QRC1', b'QRC2', b'QRC3'):
+            if decoded[:4] == b"QRC3":
                 results.append(decoded)
                 continue
         except Exception:
             pass
         # Raw binary QRFS (legacy)
-        if raw[:4] in (b'QRC1', b'QRC2', b'QRC3'):
+        if raw[:4] == b"QRC3":
             results.append(raw)
             continue
         # Non-QRFS QR (public key, text, etc)
@@ -102,7 +102,7 @@ def _zbar(img: Image.Image) -> List[bytes]:
     return results
 
 
-def _decode_cell(cell: Image.Image, stats: DecodeStats) -> List[bytes]:
+def _decode_cell(cell: Image.Image, stats: DecodeStats) -> list[bytes]:
     """Decode a single small cell crop with preprocessing variants."""
     stats.preprocess_attempts += 1
     r = _zbar(cell)
@@ -143,7 +143,8 @@ def _decode_cell(cell: Image.Image, stats: DecodeStats) -> List[bytes]:
 
 # ── Grid cell positions ──────────────────────────────────────────
 
-def _grid_cells_px(dpi: int) -> List[Tuple[int, int, int, int]]:
+
+def _grid_cells_px(dpi: int) -> list[tuple[int, int, int, int]]:
     """30 cells as (x, y, w, h) in pixels at given DPI."""
     s = dpi / 72.0
     cells = []
@@ -159,11 +160,14 @@ def _grid_cells_px(dpi: int) -> List[Tuple[int, int, int, int]]:
 
 # ── PDF helpers ──────────────────────────────────────────────────
 
+
 def _pdf_page_count(pdf_path: str) -> int:
     try:
         r = subprocess.run(
             ["pdfinfo", pdf_path],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         for line in r.stdout.splitlines():
             if line.startswith("Pages:"):
@@ -173,8 +177,7 @@ def _pdf_page_count(pdf_path: str) -> int:
     return 1
 
 
-def _render_page_to_file(pdf_path: str, page_1based: int,
-                         dpi: int, out_dir: str) -> Optional[str]:
+def _render_page_to_file(pdf_path: str, page_1based: int, dpi: int, out_dir: str) -> str | None:
     """Render one PDF page to a temp PNG file via pdftoppm.
 
     Returns path to PNG or None on failure.
@@ -182,10 +185,21 @@ def _render_page_to_file(pdf_path: str, page_1based: int,
     out_prefix = os.path.join(out_dir, "page")
     try:
         subprocess.run(
-            ["pdftoppm", "-png", "-r", str(dpi),
-             "-f", str(page_1based), "-l", str(page_1based),
-             pdf_path, out_prefix],
-            check=True, capture_output=True, timeout=30,
+            [
+                "pdftoppm",
+                "-png",
+                "-r",
+                str(dpi),
+                "-f",
+                str(page_1based),
+                "-l",
+                str(page_1based),
+                pdf_path,
+                out_prefix,
+            ],
+            check=True,
+            capture_output=True,
+            timeout=30,
         )
         pngs = sorted(f for f in os.listdir(out_dir) if f.endswith(".png"))
         return os.path.join(out_dir, pngs[0]) if pngs else None
@@ -195,15 +209,19 @@ def _render_page_to_file(pdf_path: str, page_1based: int,
 
 # ── Process one page: load, crop cells, decode ───────────────────
 
-def _process_page_image(page_img: Image.Image,
-                        cells: List[Tuple[int, int, int, int]],
-                        found: List[bytes], seen: set,
-                        stats: DecodeStats) -> bool:
+
+def _process_page_image(
+    page_img: Image.Image,
+    cells: list[tuple[int, int, int, int]],
+    found: list[bytes],
+    seen: set,
+    stats: DecodeStats,
+) -> bool:
     """Crop each grid cell and decode individually."""
     pw, ph = page_img.size
     had_hit = False
 
-    for (cx, cy, cw, ch) in cells:
+    for cx, cy, cw, ch in cells:
         x2 = min(cx + cw, pw)
         y2 = min(cy + ch, ph)
         if cx >= pw or cy >= ph or x2 <= cx or y2 <= cy:
@@ -224,8 +242,10 @@ def _process_page_image(page_img: Image.Image,
 #  PUBLIC API
 # ══════════════════════════════════════════════════════════════════
 
-def decode_qr_bytes_from_pdf(pdf_path: str, dpi: int = 150,
-                             return_stats: bool = False, progress_callback=None):
+
+def decode_qr_bytes_from_pdf(
+    pdf_path: str, dpi: int = 150, return_stats: bool = False, progress_callback=None
+):
     """Decode QR codes from a multi-page PDF.
 
     Renders each page ONCE to a temp PNG via pdftoppm, then crops
@@ -234,14 +254,12 @@ def decode_qr_bytes_from_pdf(pdf_path: str, dpi: int = 150,
     At 150 DPI a page is ~1240x1753 px (~6 MB). Each cell crop is ~200 KB.
     """
     if not shutil.which("pdftoppm"):
-        raise RuntimeError(
-            "pdftoppm non trovato. Installa poppler: pkg install poppler"
-        )
+        raise RuntimeError("pdftoppm non trovato. Installa poppler: pkg install poppler")
 
     page_count = _pdf_page_count(pdf_path)
     cells = _grid_cells_px(dpi)
 
-    chunks: List[bytes] = []
+    chunks: list[bytes] = []
     seen: set = set()
     stats = DecodeStats(pages_total=page_count, pdf_backend="pdftoppm")
 
@@ -274,14 +292,15 @@ def decode_qr_bytes_from_pdf(pdf_path: str, dpi: int = 150,
     return (chunks, stats.__dict__) if return_stats else chunks
 
 
-def decode_qr_bytes_from_images(image_paths: List[str],
-                                return_stats: bool = False, progress_callback=None):
+def decode_qr_bytes_from_images(
+    image_paths: list[str], return_stats: bool = False, progress_callback=None
+):
     """Decode QR codes from image files (photos, scans, PNG/JPG/TIFF/BMP).
 
     Supports any format PIL can open. Downscales large images.
     Applies proportional 5x6 grid matching the pdfgen layout.
     """
-    chunks: List[bytes] = []
+    chunks: list[bytes] = []
     seen: set = set()
     stats = DecodeStats(pages_total=len(image_paths))
 
@@ -295,9 +314,7 @@ def decode_qr_bytes_from_images(image_paths: List[str],
         max_long = 2000
         if max(pw, ph) > max_long:
             ratio = max_long / max(pw, ph)
-            image = image.resize(
-                (int(pw * ratio), int(ph * ratio)), Image.LANCZOS
-            )
+            image = image.resize((int(pw * ratio), int(ph * ratio)), Image.LANCZOS)
             pw, ph = image.size
 
         # Proportional grid matching pdfgen layout

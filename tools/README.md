@@ -8,7 +8,7 @@ part of the main Flask application.
 ## `rescue.js` — Offline browser rescue tool
 
 `rescue.js` is the standalone reference version of the browser-side rescue UI
-logic. It implements Base45 decoding, QRFS chunk header parsing (QRC1/QRC2/QRC3),
+logic. It implements Base45 decoding, QRFS chunk header parsing (QRC3),
 and the live-camera / manual-input collection flow used on the `/rescue` page.
 
 The same JavaScript is also inlined in `qrfs/templates/rescue.html`, which is
