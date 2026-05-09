@@ -12,6 +12,11 @@ All CLI flags and environment variables:
   --cert=PATH    Path to a PEM certificate file (requires --key).
   --key=PATH     Path to a PEM private-key file (requires --cert).
 
+Password-envelope CLI command:
+  qrfs encrypt-password --in INPUT --out OUTPUT --password PASS
+      [--kdf-profile {interactive,default,sensitive}]
+      [--kdf-memory KIB] [--kdf-time ITERATIONS] [--kdf-parallel LANES]
+
 Corresponding environment variables:
   QRFS_DEBUG, QRFS_FLASK_DEV, QRFS_HOST, QRFS_PORT,
   QRFS_LAN, QRFS_HTTPS, QRFS_CERT, QRFS_KEY
@@ -35,6 +40,7 @@ HTTPS notes:
 import os
 import ssl
 import sys
+from argparse import ArgumentParser
 from pathlib import Path
 
 # Pure helpers (no Flask / heavy deps) — importable without loading the full app.
@@ -47,6 +53,7 @@ from qrfs._startup import (
     is_loopback,
     resolve_host,
 )
+from qrfs.core.crypto_utils import encrypt_file_payload_password, resolve_kdf_parameters
 
 
 def _env_flag(name: str) -> bool:
@@ -68,6 +75,68 @@ def _env_port(default: int = 5000) -> int:
     if 1 <= port <= 65535:
         return port
     return default
+
+
+def _parse_cli_range(name: str, value: int | None, minimum: int, maximum: int) -> int | None:
+    if value is None:
+        return None
+    if minimum <= value <= maximum:
+        return value
+    raise ValueError(f"{name} must be between {minimum} and {maximum}.")
+
+
+def _run_encrypt_password_cli(argv: list[str]) -> int:
+    parser = ArgumentParser(
+        prog="qrfs encrypt-password",
+        description="Encrypt a QFSP payload into a password-protected QFSC envelope.",
+    )
+    parser.add_argument("--in", dest="input_path", required=True, help="Input file path (bytes).")
+    parser.add_argument("--out", dest="output_path", required=True, help="Output .qfsc file path.")
+    parser.add_argument(
+        "--password",
+        required=True,
+        help="Encryption password (min 14 characters).",
+    )
+    parser.add_argument(
+        "--kdf-profile",
+        choices=("interactive", "default", "sensitive"),
+        default="default",
+        help="Named KDF profile (default: default).",
+    )
+    parser.add_argument("--kdf-memory", type=int, default=None, help="KDF memory in KiB.")
+    parser.add_argument("--kdf-time", type=int, default=None, help="KDF time cost iterations.")
+    parser.add_argument("--kdf-parallel", type=int, default=None, help="KDF parallelism lanes.")
+    parser.add_argument(
+        "--signing-private-key",
+        default=None,
+        help="Optional Ed25519 signing private key (base64).",
+    )
+    args = parser.parse_args(argv)
+
+    kdf_memory_kib = _parse_cli_range("KDF memory", args.kdf_memory, 8, 4194304)
+    kdf_time_cost = _parse_cli_range("KDF time cost", args.kdf_time, 1, 255)
+    kdf_parallelism = _parse_cli_range("KDF parallelism", args.kdf_parallel, 1, 255)
+    resolve_kdf_parameters(
+        kdf_profile=args.kdf_profile,
+        kdf_memory_kib=kdf_memory_kib,
+        kdf_time_cost=kdf_time_cost,
+        kdf_parallelism=kdf_parallelism,
+    )
+    payload = Path(args.input_path).read_bytes()
+    encrypted = encrypt_file_payload_password(
+        payload,
+        args.password,
+        sender_signing_private_key_b64=args.signing_private_key,
+        kdf_profile=args.kdf_profile,
+        kdf_memory_kib=kdf_memory_kib,
+        kdf_time_cost=kdf_time_cost,
+        kdf_parallelism=kdf_parallelism,
+    )
+    out_path = Path(args.output_path)
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_bytes(encrypted)
+    print(f"[QRFS] Wrote password envelope: {out_path}", file=sys.stderr)
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -114,6 +183,13 @@ def _print_banner(host: str, port: int, use_https: bool, cert_path: Path | None)
 
 
 def main() -> None:
+    if len(sys.argv) > 1 and sys.argv[1] == "encrypt-password":
+        try:
+            raise SystemExit(_run_encrypt_password_cli(sys.argv[2:]))
+        except ValueError as exc:
+            print(f"[QRFS] Error: {exc}", file=sys.stderr)
+            raise SystemExit(2) from exc
+
     # Deferred import so that importing this module for its pure helpers does
     # not trigger the full qrfs package (Flask app, routes, pyzbar …).
     from qrfs import app

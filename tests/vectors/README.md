@@ -25,7 +25,7 @@ Vectors are pinned to specific format versions:
 | Layer     | Version |
 |-----------|---------|
 | `QFSP`    | 1       |
-| `QFSC`    | 5       |
+| `QFSC`    | 6       |
 | `QRC`     | 3       |
 
 **Any byte change to a `deterministic: true` file is a format break.**  If the
@@ -52,7 +52,9 @@ tests/vectors/
 ├── envelopes/
 │   ├── clear/              ← QFSC mode 0 (no encryption, no signing)
 │   ├── clear_signed/       ← QFSC mode 0 + Ed25519 signature
-│   ├── password/           ← QFSC mode 1 (fixed salt + nonce + password)
+│   ├── password_interactive/ ← QFSC mode 1 (interactive KDF profile)
+│   ├── password_default/     ← QFSC mode 1 (default KDF profile)
+│   ├── password_sensitive/   ← QFSC mode 1 (sensitive KDF profile)
 │   └── pubkey/             ← QFSC mode 2 (fixed recipient X25519 keypair)
 ├── chunks/
 │   ├── small_text/         ← QRC chunks of envelopes/clear/small_text.qfsc
@@ -77,8 +79,9 @@ An external implementer needs them to reproduce or verify decryption.
 | `argon2_salt_hex`          | `0123456789abcdef0123456789abcdef`                 |
 | `aes_gcm_nonce_hex`        | `deadbeefcafebabedeadbeef`                         |
 | `password`                 | `correct horse battery staple xx`                  |
-| `argon2id_opslimit`        | `3`                                                |
-| `argon2id_memlimit_mib`    | `64`                                               |
+| `kdf_profiles.interactive` | Argon2id, `65536 KiB`, `time=3`, `parallel=1`     |
+| `kdf_profiles.default`     | Argon2id, `262144 KiB`, `time=3`, `parallel=1`    |
+| `kdf_profiles.sensitive`   | Argon2id, `1048576 KiB`, `time=4`, `parallel=1`   |
 | `chunk_size_for_vectors`   | `100`                                              |
 | `recipient_x25519.sk`      | `keys/recipient_x25519.sk` — 32 bytes of `0xEC`   |
 | `signer_ed25519.sk` (seed) | `keys/signer_ed25519.sk` — 32 bytes of `0xED`     |
@@ -126,7 +129,7 @@ internally and provides no public API to inject a fixed one.  As a result,
   envelope decrypts correctly using `keys/recipient_x25519.sk`, but does not
   compare the envelope bytes.
 
-The three other modes (`clear`, `clear_signed`, `password`) ARE fully
+The three other modes (`clear`, `clear_signed`, `password_*`) ARE fully
 byte-deterministic when given the same fixtures.
 
 ---

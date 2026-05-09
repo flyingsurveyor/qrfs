@@ -1,18 +1,42 @@
 {
   "qrfs_format_versions": {
     "QFSP": 1,
-    "QFSC": 5,
+    "QFSC": 6,
     "QRC": 3
   },
-  "generated_at": "2026-05-09T13:52:56Z",
+  "generated_at": "2026-05-09T15:03:27Z",
   "generator": "tests/vectors/generate.py",
   "fixtures": {
     "file_id_hex": "00112233445566778899aabbccddeeff",
     "argon2_salt_hex": "0123456789abcdef0123456789abcdef",
     "aes_gcm_nonce_hex": "deadbeefcafebabedeadbeef",
     "password": "correct horse battery staple xx",
-    "argon2id_opslimit": 3,
-    "argon2id_memlimit_mib": 64,
+    "kdf_profiles": {
+      "interactive": {
+        "kdf_algorithm": 1,
+        "kdf_memory_kib": 65536,
+        "kdf_time_cost": 3,
+        "kdf_parallelism": 1,
+        "kdf_salt_length": 16,
+        "kdf_output_length": 32
+      },
+      "default": {
+        "kdf_algorithm": 1,
+        "kdf_memory_kib": 262144,
+        "kdf_time_cost": 3,
+        "kdf_parallelism": 1,
+        "kdf_salt_length": 16,
+        "kdf_output_length": 32
+      },
+      "sensitive": {
+        "kdf_algorithm": 1,
+        "kdf_memory_kib": 1048576,
+        "kdf_time_cost": 4,
+        "kdf_parallelism": 1,
+        "kdf_salt_length": 16,
+        "kdf_output_length": 32
+      }
+    },
     "chunk_size_for_vectors": 100
   },
   "files": [
@@ -114,157 +138,229 @@
     },
     {
       "path": "envelopes/clear/empty.qfsc",
-      "sha256": "4eeb7e0680d4da78e206a2e593f425da0fa5eff6f09af5cf21f739f1aaeba86c",
+      "sha256": "4b372e372092272289504868fab1dbe26e7ab339ab19015fca6682ee60064723",
       "size": 120,
       "deterministic": true
     },
     {
       "path": "envelopes/clear_signed/empty.qfsc",
-      "sha256": "dca443b47f39c11f9abcf6fc0dde64990490bd8f1a2b105fe3673a789dab4271",
+      "sha256": "02aee1ebeaa43a7c32d51b62e8ea13cf5c9f81e1374002c85d10dac13bfd2a1a",
       "size": 224,
       "deterministic": true
     },
     {
-      "path": "envelopes/password/empty.qfsc",
-      "sha256": "40d80ff875e6207ee5198135b05b327647d230ca240eb7f0652ba7dc3dcdcaf5",
-      "size": 164,
+      "path": "envelopes/password_interactive/empty.qfsc",
+      "sha256": "939bbeb019efc6f0465ff4c39d5bc6ba7147592981c019a81878a2960ee7b11b",
+      "size": 173,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_default/empty.qfsc",
+      "sha256": "e413a94d8130e9587e82851437f3880bfc02e672f050df2c3671009f9e47060f",
+      "size": 173,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_sensitive/empty.qfsc",
+      "sha256": "f3424f96e9461206222aa9652c8720b27c8477e561e71ada3fb3b4822144bf8d",
+      "size": 173,
       "deterministic": true
     },
     {
       "path": "envelopes/pubkey/empty.qfsc",
-      "sha256": "2e13d0e773829a7e3fbfddd1e4e12163817805bb7d9a33cf82e02d97e1dc2e75",
+      "sha256": "b83233b32b52f42a60258308f826240f757577796760cb1978bbccc6e3512744",
       "size": 238,
       "deterministic": false,
       "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
     },
     {
       "path": "envelopes/clear/one_byte.qfsc",
-      "sha256": "27d692a669e28d97e4bd43030f1cb7ad1fb3e4a212f90637669f63c96cbcf79b",
+      "sha256": "dc90929ad720c89bdc2f34d7cff5e2ab8c307d49330370c9492030d28bd34fbe",
       "size": 124,
       "deterministic": true
     },
     {
       "path": "envelopes/clear_signed/one_byte.qfsc",
-      "sha256": "513a5c6e0f8ee9a06be6cfcbde2420b11ab70eb77d66f59174b9da752e758738",
+      "sha256": "01d93600d7289411095c50fd37abaaeb0a8cea8068a60c101b26881e4a164c27",
       "size": 228,
       "deterministic": true
     },
     {
-      "path": "envelopes/password/one_byte.qfsc",
-      "sha256": "d73cb4503f26f12ae71215d5bc4b0b6478beeb75040e4bfcb03161862ec55ebb",
-      "size": 168,
+      "path": "envelopes/password_interactive/one_byte.qfsc",
+      "sha256": "97b69ee0c45d1b4229d2adebd4a2d06f6dd674e584f401fab75201fd9c527643",
+      "size": 177,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_default/one_byte.qfsc",
+      "sha256": "2c23b1e38accf9adcc2d5b73c07ded1def910c20939cb439e6249adbd59f2781",
+      "size": 177,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_sensitive/one_byte.qfsc",
+      "sha256": "871535d1eaec42117ac7015a290eda537a8e823bb0d1c4ed1c58f20c8eaa175d",
+      "size": 177,
       "deterministic": true
     },
     {
       "path": "envelopes/pubkey/one_byte.qfsc",
-      "sha256": "555c71a1ec1922b6e8a8db9258c4a146f5f9b3d78caabe474540f6b29198333e",
+      "sha256": "c0364372f8f49eaff181c00703d44584dc993f31ff40a4f74dbb847308b02b3d",
       "size": 242,
       "deterministic": false,
       "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
     },
     {
       "path": "envelopes/clear/small_text.qfsc",
-      "sha256": "178e78bf2bbafd635018f8f715f04aad6e979537397c160ebcbc24534ab8e00c",
+      "sha256": "5f1c5bc9bc34fcd51f328476e597b2d26ac78080bccd4e538215600a9899fe52",
       "size": 498,
       "deterministic": true
     },
     {
       "path": "envelopes/clear_signed/small_text.qfsc",
-      "sha256": "2a4f0a32ab484c57d6dd8e302f554d0b2cb71dc3220364d3b4b0ce4ba62d4dd5",
+      "sha256": "8823a96febaa3a3778f85d25559823420c49f7545f1ec9313cc5df60c53953a9",
       "size": 602,
       "deterministic": true
     },
     {
-      "path": "envelopes/password/small_text.qfsc",
-      "sha256": "21045a50ecc6b63c9f4bf0c8afc7263d61f666dfb8d5a59394283ae6c119f23c",
-      "size": 542,
+      "path": "envelopes/password_interactive/small_text.qfsc",
+      "sha256": "26819cae57e7f3915dfba6da7c499a071ec907c542d108725fd79235c7b2eb5b",
+      "size": 551,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_default/small_text.qfsc",
+      "sha256": "9f31baf8b1d74823dd3caecce569a07f33e61478b810eb0d4d293b8001c8a4ca",
+      "size": 551,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_sensitive/small_text.qfsc",
+      "sha256": "e7eb61d8c68443efc2334a09688e63cb48033322ad528fd8fefa1b3d0bc7ac88",
+      "size": 551,
       "deterministic": true
     },
     {
       "path": "envelopes/pubkey/small_text.qfsc",
-      "sha256": "3a7c7486a45093d9df47ba3b3135d38a6cdd5315e34bc7ee54787394654e6fec",
+      "sha256": "394d521136c54e3b7241955971be65d709c38408588974713f112ffc1fa5a4da",
       "size": 616,
       "deterministic": false,
       "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
     },
     {
       "path": "envelopes/clear/utf8_emoji.qfsc",
-      "sha256": "c64755993ca5cae7fc06089af9d9fd3bd0def8622dc25c895092f9765ec8697a",
+      "sha256": "ee9e4a12a2f0bae1cc0cb28eda25f452681f9519580c73bc4c673fe2e801ede5",
       "size": 250,
       "deterministic": true
     },
     {
       "path": "envelopes/clear_signed/utf8_emoji.qfsc",
-      "sha256": "607e3904e47f277a88945a4a6f6da618fe15ac6e210ea865ed3bf162c72fd8cc",
+      "sha256": "d335ecdc89d5248350b40845b4fbacdd8c03fbc4070d880d14325ccedc44029c",
       "size": 354,
       "deterministic": true
     },
     {
-      "path": "envelopes/password/utf8_emoji.qfsc",
-      "sha256": "d2a50895e216946ab35bc6c3cafc6fe18b92389fc81170a26e55a782adb2ea92",
-      "size": 294,
+      "path": "envelopes/password_interactive/utf8_emoji.qfsc",
+      "sha256": "28cd4dad822926725e4f3619bed8d3337b54f0ab78c6843f09f28f1b32ef8551",
+      "size": 303,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_default/utf8_emoji.qfsc",
+      "sha256": "0ff9233875e613c2697f11c33f20e383cdbef657020b97ff445f5b752a15a236",
+      "size": 303,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_sensitive/utf8_emoji.qfsc",
+      "sha256": "f4bacb0bd721e30a1943a36dd449965994c480238e5db48118fe8a091d5c451c",
+      "size": 303,
       "deterministic": true
     },
     {
       "path": "envelopes/pubkey/utf8_emoji.qfsc",
-      "sha256": "f079462ff620cae0fce209644e74efff34ab2b712e78b2382419cb6f75ee83ec",
+      "sha256": "1979ed5111a46a5844473724ff3f22ecbb3878f87c092a5a1d8d8f5974f67f12",
       "size": 368,
       "deterministic": false,
       "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
     },
     {
       "path": "envelopes/clear/incompressible.qfsc",
-      "sha256": "81c74b3eceff9612129aaf7e3fbec09e227575c1c51ad51f5b9ee5eec746f83b",
+      "sha256": "7f273318f67cc5202cb5edbb9126b2a9a81dc568de2142fa2765cb1fca8aae1a",
       "size": 4228,
       "deterministic": true
     },
     {
       "path": "envelopes/clear_signed/incompressible.qfsc",
-      "sha256": "a8e742136729b3469fd49909be2f03a73ce3d42632041b1c62a7f6c3b3d360e5",
+      "sha256": "cd844a2d567c13b5041991f6cb9376abf061c505d3c9f868217a7a7052a6e701",
       "size": 4332,
       "deterministic": true
     },
     {
-      "path": "envelopes/password/incompressible.qfsc",
-      "sha256": "2ac933cf8d68d7806a783fb74e7f9b169941e1108cbbb6250b4a7704dec1edee",
-      "size": 4272,
+      "path": "envelopes/password_interactive/incompressible.qfsc",
+      "sha256": "63bd4fc72b0d4f4e85de5b4ff3b298dbb26fa3e59360ea9638c4a6bd26a8f9df",
+      "size": 4281,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_default/incompressible.qfsc",
+      "sha256": "5e9f19212bc56ae51fe429bda145b04575579dd07838ebb10a27c3f904273a94",
+      "size": 4281,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_sensitive/incompressible.qfsc",
+      "sha256": "84a5a45bd483a92f1995b623537b4c067efa29f9d9542d665e9bd463c91a4d2d",
+      "size": 4281,
       "deterministic": true
     },
     {
       "path": "envelopes/pubkey/incompressible.qfsc",
-      "sha256": "41ebfe095acb4f4d40e63d0ff680651b6ef37c8c5edab83f182967cfd8b702ec",
+      "sha256": "c3957732bb291d645b08344b565c1ad610e85ca00c36ecd3109b99ad1bec24c1",
       "size": 4346,
       "deterministic": false,
       "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
     },
     {
       "path": "envelopes/clear/compressible.qfsc",
-      "sha256": "cd6a820ed6932a6245a771c39a539d2719a61343eeee103363a9d581df694987",
+      "sha256": "6e7ed84387984da6740b11fe152a7796df647839a149d21b28239a94e221aea2",
       "size": 174,
       "deterministic": true
     },
     {
       "path": "envelopes/clear_signed/compressible.qfsc",
-      "sha256": "01dd5cead111e7514715b810c15296db36858a6f40945ab631b7e63e14207b5f",
+      "sha256": "836dba7cba57d89900a6bc1917fdb85aa06fff884345832d87b62b99e81cd79a",
       "size": 278,
       "deterministic": true
     },
     {
-      "path": "envelopes/password/compressible.qfsc",
-      "sha256": "7204972bc726db6ac35b0fddc758c533887617ac08db954901ea769d775d9e5a",
-      "size": 218,
+      "path": "envelopes/password_interactive/compressible.qfsc",
+      "sha256": "66e2e8113d3a8ea94b5c406c745f211a391f10d324bd6d65822c8b24bb042488",
+      "size": 227,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_default/compressible.qfsc",
+      "sha256": "87048946647a70b61697fa3c519e4bf7e204fd11b7c799b8ce91adf447a605e2",
+      "size": 227,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password_sensitive/compressible.qfsc",
+      "sha256": "d2a726eabe32999ff3ee941f98dfe4d9fe5ea32a0e54a9db929345d0a041a215",
+      "size": 227,
       "deterministic": true
     },
     {
       "path": "envelopes/pubkey/compressible.qfsc",
-      "sha256": "aef4ca61fd5d64e38446fe55331429803e558b97936c1e18e9abecf511ee261c",
+      "sha256": "ef7249d0d79f98995325da27d654c2699465afc13a921cdcff240a3e043fc81d",
       "size": 292,
       "deterministic": false,
       "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
     },
     {
       "path": "chunks/small_text/000.qrc",
-      "sha256": "7505617f9e93c7c49d60420a98ed7201af422842b6b12326f1839b40083c695f",
+      "sha256": "7377705ccbe1d1fdc5e6d09a223f226f1f74a89cebaa90ab054749036150bc08",
       "size": 143,
       "deterministic": true
     },
@@ -294,7 +390,7 @@
     },
     {
       "path": "chunks/small_text_fec_xor/000.qrc",
-      "sha256": "1594f78ab99c06c8c779b8fbddb6839e35b83ba8018e05a0def6bd3c1513ba19",
+      "sha256": "2a89165ed1765422cae2c84a7fb833d20a9068afc9d825ce28b013cc8de86d39",
       "size": 143,
       "deterministic": true
     },
@@ -312,7 +408,7 @@
     },
     {
       "path": "chunks/small_text_fec_xor/p000.qrc",
-      "sha256": "99c0411e20303229d56415d26bb2329a609a8f9f75a4e893bd6a39b5330f0dec",
+      "sha256": "a4a0daba7872c58abe07bd282746369056eeb4d18bcc7d96ed822f43e53995f2",
       "size": 151,
       "deterministic": true
     },

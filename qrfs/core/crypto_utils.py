@@ -1,17 +1,19 @@
-"""QRFS Cryptographic utilities — Version 5.
+"""QRFS Cryptographic utilities — Version 6.
 
 KDF:     Argon2id (PyNaCl/libsodium)
 Cipher:  AES-256-GCM with authenticated headers (AAD)
 KeyEx:   X25519 via NaCl SealedBox
 Signing: Ed25519
 
-Wire format (QFSC v5):
+Wire format (QFSC v6):
   Clear mode:
-    "QFSC" ver(5) mode(0) flags(1) [signer(40)] payload [signature(64)]
+    "QFSC" ver(6) mode(0) flags(1) [signer(40)] payload [signature(64)]
   Password mode:
-    "QFSC" ver(5) mode(1) flags(1) salt(16) nonce(12) [signer(40)] ciphertext+tag [signature(64)]
+    "QFSC" ver(6) mode(1) flags(1) salt(16) nonce(12)
+    kdf_algo(1) kdf_mem_kib(4) kdf_time(1) kdf_parallel(1) kdf_salt_len(1) kdf_out_len(1)
+    [signer(40)] ciphertext+tag [signature(64)]
   Pubkey mode:
-    "QFSC" ver(5) mode(2) flags(1) key_id(8) sealed_len(2) nonce(12)
+    "QFSC" ver(6) mode(2) flags(1) key_id(8) sealed_len(2) nonce(12)
     [signer(40)] sealed ciphertext+tag [signature(64)]
 
 If FLAG_SIGNED is set, the Ed25519 signature is appended at end and covers the whole
@@ -21,6 +23,7 @@ all transport headers through AAD.
 
 import os
 import struct
+from dataclasses import dataclass
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from nacl.public import SealedBox
@@ -37,7 +40,7 @@ from .key_utils import (
 )
 
 MAGIC = b"QFSC"
-VERSION = 5
+VERSION = 6
 SALT_LEN = 16
 NONCE_LEN = 12
 SIGNATURE_LEN = 64
@@ -46,17 +49,160 @@ MODE_PASSWORD = 1
 MODE_PUBKEY = 2
 FLAG_SIGNED = 0x01
 MIN_PASSWORD_LEN = 14
-ARGON2_OPSLIMIT = 3
-ARGON2_MEMLIMIT = 64 * 1024 * 1024
+
+KDF_ALGORITHM_ARGON2ID = 0x01
+KDF_MEMORY_MIN_KIB = 8
+KDF_MEMORY_MAX_KIB = 4 * 1024 * 1024
+KDF_TIME_MIN = 1
+KDF_TIME_MAX = 255
+KDF_PARALLELISM_MIN = 1
+KDF_PARALLELISM_MAX = 255
+KDF_SALT_LENGTH_MIN = 1
+KDF_SALT_LENGTH_MAX = 255
+KDF_OUTPUT_LENGTH_MIN = 1
+KDF_OUTPUT_LENGTH_MAX = 255
+PASSWORD_KDF_BLOCK_LEN = 9
+
+V5_UNSUPPORTED_ERROR = (
+    "QFSC v5 envelopes are not supported. QRFS is pre-1.0 and does not commit to "
+    "backward compatibility for envelope versions."
+)
 
 
-def _derive_key(password: str, salt: bytes) -> bytes:
+@dataclass(frozen=True)
+class KdfProfile:
+    memory_kib: int
+    time_cost: int
+    parallelism: int
+
+
+KDF_PROFILES: dict[str, KdfProfile] = {
+    "interactive": KdfProfile(memory_kib=64 * 1024, time_cost=3, parallelism=1),
+    "default": KdfProfile(memory_kib=256 * 1024, time_cost=3, parallelism=1),
+    "sensitive": KdfProfile(memory_kib=1024 * 1024, time_cost=4, parallelism=1),
+}
+
+
+def _validate_kdf_profile(profile: str) -> None:
+    if profile not in KDF_PROFILES:
+        allowed = ", ".join(sorted(KDF_PROFILES))
+        raise ValueError(f"Invalid KDF profile: {profile!r}. Allowed values: {allowed}.")
+
+
+def _validate_kdf_parameters(
+    *,
+    algorithm: int,
+    memory_kib: int,
+    time_cost: int,
+    parallelism: int,
+    salt_length: int,
+    output_length: int,
+) -> None:
+    if algorithm != KDF_ALGORITHM_ARGON2ID:
+        raise ValueError("Unsupported KDF algorithm in envelope.")
+    if not (KDF_MEMORY_MIN_KIB <= memory_kib <= KDF_MEMORY_MAX_KIB):
+        raise ValueError(
+            f"KDF memory must be between {KDF_MEMORY_MIN_KIB} and {KDF_MEMORY_MAX_KIB} KiB."
+        )
+    if not (KDF_TIME_MIN <= time_cost <= KDF_TIME_MAX):
+        raise ValueError(f"KDF time cost must be between {KDF_TIME_MIN} and {KDF_TIME_MAX}.")
+    if not (KDF_PARALLELISM_MIN <= parallelism <= KDF_PARALLELISM_MAX):
+        raise ValueError(
+            "KDF parallelism must be between "
+            f"{KDF_PARALLELISM_MIN} and {KDF_PARALLELISM_MAX}."
+        )
+    if not (KDF_SALT_LENGTH_MIN <= salt_length <= KDF_SALT_LENGTH_MAX):
+        raise ValueError(
+            f"KDF salt length must be between {KDF_SALT_LENGTH_MIN} and {KDF_SALT_LENGTH_MAX}."
+        )
+    if not (KDF_OUTPUT_LENGTH_MIN <= output_length <= KDF_OUTPUT_LENGTH_MAX):
+        raise ValueError(
+            "KDF output length must be between "
+            f"{KDF_OUTPUT_LENGTH_MIN} and {KDF_OUTPUT_LENGTH_MAX}."
+        )
+
+
+def resolve_kdf_parameters(
+    *,
+    kdf_profile: str = "default",
+    kdf_memory_kib: int | None = None,
+    kdf_time_cost: int | None = None,
+    kdf_parallelism: int | None = None,
+) -> dict[str, int | str]:
+    """Resolve profile + overrides into concrete Argon2id envelope parameters."""
+    _validate_kdf_profile(kdf_profile)
+    profile = KDF_PROFILES[kdf_profile]
+    memory_kib = profile.memory_kib if kdf_memory_kib is None else int(kdf_memory_kib)
+    time_cost = profile.time_cost if kdf_time_cost is None else int(kdf_time_cost)
+    parallelism = profile.parallelism if kdf_parallelism is None else int(kdf_parallelism)
+    params: dict[str, int | str] = {
+        "profile": kdf_profile,
+        "algorithm": KDF_ALGORITHM_ARGON2ID,
+        "memory_kib": memory_kib,
+        "time_cost": time_cost,
+        "parallelism": parallelism,
+        "salt_length": SALT_LEN,
+        "output_length": 32,
+    }
+    _validate_kdf_parameters(
+        algorithm=int(params["algorithm"]),
+        memory_kib=int(params["memory_kib"]),
+        time_cost=int(params["time_cost"]),
+        parallelism=int(params["parallelism"]),
+        salt_length=int(params["salt_length"]),
+        output_length=int(params["output_length"]),
+    )
+    return params
+
+
+def _pack_password_kdf_block(params: dict[str, int | str]) -> bytes:
+    return struct.pack(
+        ">BIBBBB",
+        int(params["algorithm"]),
+        int(params["memory_kib"]),
+        int(params["time_cost"]),
+        int(params["parallelism"]),
+        int(params["salt_length"]),
+        int(params["output_length"]),
+    )
+
+
+def _parse_password_kdf_block(blob: bytes, offset: int) -> tuple[dict[str, int], int]:
+    end = offset + PASSWORD_KDF_BLOCK_LEN
+    if len(blob) < end:
+        raise ValueError("Invalid transport blob.")
+    algorithm, memory_kib, time_cost, parallelism, salt_length, output_length = struct.unpack(
+        ">BIBBBB", blob[offset:end]
+    )
+    params = {
+        "algorithm": algorithm,
+        "memory_kib": memory_kib,
+        "time_cost": time_cost,
+        "parallelism": parallelism,
+        "salt_length": salt_length,
+        "output_length": output_length,
+    }
+    _validate_kdf_parameters(**params)
+    if params["salt_length"] != SALT_LEN:
+        raise ValueError(f"Unsupported KDF salt length in envelope: {params['salt_length']}.")
+    return params, end
+
+
+def _derive_key(
+    password: str,
+    salt: bytes,
+    *,
+    memory_kib: int,
+    time_cost: int,
+    parallelism: int,
+    output_length: int,
+) -> bytes:
     return argon2id.kdf(
-        32,
+        output_length,
         password.encode("utf-8"),
         salt,
-        opslimit=ARGON2_OPSLIMIT,
-        memlimit=ARGON2_MEMLIMIT,
+        opslimit=time_cost,
+        memlimit=memory_kib * 1024,
     )
 
 
@@ -83,6 +229,13 @@ def _sign_blob(
     }
 
 
+def _validate_qfsc_version(version: int) -> None:
+    if version == 5:
+        raise ValueError(V5_UNSUPPORTED_ERROR)
+    if version != VERSION:
+        raise ValueError(f"Unsupported cryptographic version: {version}")
+
+
 def encrypt_file_payload_clear(
     payload: bytes, sender_signing_private_key_b64: str | None = None
 ) -> bytes:
@@ -99,33 +252,43 @@ def encrypt_file_payload_password(
     password: str,
     sender_signing_private_key_b64: str | None = None,
     *,
+    kdf_profile: str = "default",
+    kdf_memory_kib: int | None = None,
+    kdf_time_cost: int | None = None,
+    kdf_parallelism: int | None = None,
     _salt: bytes | None = None,
     _nonce: bytes | None = None,
 ) -> bytes:
-    """Encrypt *payload* with a password using Argon2id + AES-256-GCM.
-
-    Parameters
-    ----------
-    payload:                       Raw QFSP bytes to encrypt.
-    password:                      Encryption password (min 14 characters).
-    sender_signing_private_key_b64: Optional Ed25519 signing key (base64).
-    _salt:  *Testing/vector-generation only.* Fixed 16-byte Argon2id salt.
-            Default ``None`` generates fresh ``os.urandom(16)`` each call,
-            preserving production non-determinism.
-    _nonce: *Testing/vector-generation only.* Fixed 12-byte AES-GCM nonce.
-            Default ``None`` generates fresh ``os.urandom(12)`` each call,
-            preserving production non-determinism.
-    """
+    """Encrypt *payload* with a password using Argon2id + AES-256-GCM."""
     _validate_password(password)
+    kdf_params = resolve_kdf_parameters(
+        kdf_profile=kdf_profile,
+        kdf_memory_kib=kdf_memory_kib,
+        kdf_time_cost=kdf_time_cost,
+        kdf_parallelism=kdf_parallelism,
+    )
     salt = _salt if _salt is not None else os.urandom(SALT_LEN)
     nonce = _nonce if _nonce is not None else os.urandom(NONCE_LEN)
     if len(salt) != SALT_LEN:
         raise ValueError(f"_salt must be exactly {SALT_LEN} bytes.")
     if len(nonce) != NONCE_LEN:
         raise ValueError(f"_nonce must be exactly {NONCE_LEN} bytes.")
-    key = _derive_key(password, salt)
+    key = _derive_key(
+        password,
+        salt,
+        memory_kib=int(kdf_params["memory_kib"]),
+        time_cost=int(kdf_params["time_cost"]),
+        parallelism=int(kdf_params["parallelism"]),
+        output_length=int(kdf_params["output_length"]),
+    )
     flags = FLAG_SIGNED if sender_signing_private_key_b64 else 0
-    header = MAGIC + struct.pack(">BBB", VERSION, MODE_PASSWORD, flags) + salt + nonce
+    header = (
+        MAGIC
+        + struct.pack(">BBB", VERSION, MODE_PASSWORD, flags)
+        + salt
+        + nonce
+        + _pack_password_kdf_block(kdf_params)
+    )
     if sender_signing_private_key_b64:
         signing_key = parse_signing_private_key_b64(sender_signing_private_key_b64)
         header += _signature_metadata_from_verify_key(bytes(signing_key.verify_key))
@@ -135,7 +298,9 @@ def encrypt_file_payload_password(
 
 
 def encrypt_file_payload_pubkey(
-    payload: bytes, recipient_public_key_b64: str, sender_signing_private_key_b64: str | None = None
+    payload: bytes,
+    recipient_public_key_b64: str,
+    sender_signing_private_key_b64: str | None = None,
 ) -> bytes:
     recipient_pk = parse_public_key_b64(recipient_public_key_b64)
     session_key = os.urandom(32)
@@ -183,7 +348,7 @@ def _signature_verify_key_from_header(blob: bytes) -> bytes:
     mode = blob[5]
     offset = 7
     if mode == MODE_PASSWORD:
-        offset += SALT_LEN + NONCE_LEN
+        offset += SALT_LEN + NONCE_LEN + PASSWORD_KDF_BLOCK_LEN
     elif mode == MODE_PUBKEY:
         offset += 8 + 2 + NONCE_LEN
     elif mode != MODE_CLEAR:
@@ -195,8 +360,7 @@ def _split_signed_or_unsigned(blob: bytes) -> tuple[int, int, dict | None, bytes
     if blob[:4] != MAGIC or len(blob) < 7:
         raise ValueError("Invalid transport blob.")
     version = blob[4]
-    if version != VERSION:
-        raise ValueError(f"Unsupported cryptographic version: {version}")
+    _validate_qfsc_version(version)
     flags = blob[6]
     signature_info = None
     signed_or_unsigned = blob
@@ -216,11 +380,19 @@ def decrypt_file_payload_password(blob: bytes, password: str) -> tuple[bytes, di
     offset += SALT_LEN
     nonce = signed_or_unsigned[offset : offset + NONCE_LEN]
     offset += NONCE_LEN
+    kdf_params, offset = _parse_password_kdf_block(signed_or_unsigned, offset)
     if flags & FLAG_SIGNED:
         offset += 40
     header = signed_or_unsigned[:offset]
     ciphertext = signed_or_unsigned[offset:]
-    key = _derive_key(password, salt)
+    key = _derive_key(
+        password,
+        salt,
+        memory_kib=kdf_params["memory_kib"],
+        time_cost=kdf_params["time_cost"],
+        parallelism=kdf_params["parallelism"],
+        output_length=kdf_params["output_length"],
+    )
     aesgcm = AESGCM(key)
     try:
         payload = aesgcm.decrypt(nonce, ciphertext, header)
@@ -278,8 +450,7 @@ def inspect_crypto_blob(blob: bytes) -> dict:
     if blob[:4] != MAGIC or len(blob) < 7:
         raise ValueError("Invalid transport blob.")
     version = blob[4]
-    if version != VERSION:
-        raise ValueError(f"Unsupported cryptographic version: {version}")
+    _validate_qfsc_version(version)
     mode = blob[5]
     flags = blob[6]
     result = {
@@ -287,12 +458,35 @@ def inspect_crypto_blob(blob: bytes) -> dict:
         "mode": "unknown",
         "signed": bool(flags & FLAG_SIGNED),
         "recipient_key_id": None,
+        "kdf_profile": None,
+        "kdf_algorithm": None,
+        "kdf_memory_kib": None,
+        "kdf_time_cost": None,
+        "kdf_parallelism": None,
+        "kdf_salt_length": None,
+        "kdf_output_length": None,
     }
     if mode == MODE_CLEAR:
         result["mode"] = "clear"
         return result
     if mode == MODE_PASSWORD:
         result["mode"] = "password"
+        kdf_offset = 7 + SALT_LEN + NONCE_LEN
+        kdf_params, _ = _parse_password_kdf_block(blob, kdf_offset)
+        result["kdf_algorithm"] = kdf_params["algorithm"]
+        result["kdf_memory_kib"] = kdf_params["memory_kib"]
+        result["kdf_time_cost"] = kdf_params["time_cost"]
+        result["kdf_parallelism"] = kdf_params["parallelism"]
+        result["kdf_salt_length"] = kdf_params["salt_length"]
+        result["kdf_output_length"] = kdf_params["output_length"]
+        for profile_name, profile in KDF_PROFILES.items():
+            if (
+                profile.memory_kib == kdf_params["memory_kib"]
+                and profile.time_cost == kdf_params["time_cost"]
+                and profile.parallelism == kdf_params["parallelism"]
+            ):
+                result["kdf_profile"] = profile_name
+                break
         return result
     if mode == MODE_PUBKEY:
         result["mode"] = "pubkey"

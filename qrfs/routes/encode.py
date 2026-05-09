@@ -19,9 +19,11 @@ from werkzeug.utils import secure_filename
 from ..core.address_book import get_contact, load_contacts
 from ..core.chunker import make_chunks
 from ..core.crypto_utils import (
+    KDF_PROFILES,
     encrypt_file_payload_clear,
     encrypt_file_payload_password,
     encrypt_file_payload_pubkey,
+    resolve_kdf_parameters,
 )
 from ..core.estimate import estimate_encode_sizes
 from ..core.key_utils import normalize_public_key_input
@@ -164,6 +166,10 @@ def _run_encode_task(task_id: str, payload: dict) -> None:
         encryption_mode = payload["encryption_mode"]
         password = payload["password"]
         public_key = payload["public_key"]
+        kdf_profile = payload["kdf_profile"]
+        kdf_memory_kib = payload["kdf_memory_kib"]
+        kdf_time_cost = payload["kdf_time_cost"]
+        kdf_parallelism = payload["kdf_parallelism"]
         chunk_size = payload["chunk_size"]
         fec_group_size = payload["fec_group_size"]
         fec_type = payload["fec_type"]
@@ -202,7 +208,13 @@ def _run_encode_task(task_id: str, payload: dict) -> None:
             )
         else:
             encrypted = encrypt_file_payload_password(
-                packed, password, sender_signing_private_key_b64=signing_private_key or None
+                packed,
+                password,
+                sender_signing_private_key_b64=signing_private_key or None,
+                kdf_profile=kdf_profile,
+                kdf_memory_kib=kdf_memory_kib,
+                kdf_time_cost=kdf_time_cost,
+                kdf_parallelism=kdf_parallelism,
             )
 
         _update_task(
@@ -381,6 +393,14 @@ def encode_view():
     legacy_chunk_size_raw = request.form.get("chunk_size", "").strip()
     qr_ecc = request.form.get("qr_ecc", "M").strip().upper()
     generate_png_zip = request.form.get("generate_png_zip") == "on"
+    kdf_profile = request.form.get("kdf_profile", "default").strip().lower() or "default"
+    kdf_memory_raw = request.form.get("kdf_memory", "").strip()
+    kdf_time_raw = request.form.get("kdf_time", "").strip()
+    kdf_parallel_raw = request.form.get("kdf_parallel", "").strip()
+
+    kdf_memory_kib: int | None = None
+    kdf_time_cost: int | None = None
+    kdf_parallelism: int | None = None
 
     if qr_ecc not in ("L", "M", "Q", "H"):
         qr_ecc = "M"
@@ -412,6 +432,26 @@ def encode_view():
             return _redirect_back(return_to)
         if password != password_confirm:
             flash("The two passwords do not match.", "error")
+            return _redirect_back(return_to)
+        if kdf_profile not in KDF_PROFILES:
+            flash("Invalid KDF profile selection.", "error")
+            return _redirect_back(return_to)
+        try:
+            kdf_memory_kib = int(kdf_memory_raw) if kdf_memory_raw else None
+            kdf_time_cost = int(kdf_time_raw) if kdf_time_raw else None
+            kdf_parallelism = int(kdf_parallel_raw) if kdf_parallel_raw else None
+        except ValueError:
+            flash("KDF overrides must be valid integers.", "error")
+            return _redirect_back(return_to)
+        try:
+            resolve_kdf_parameters(
+                kdf_profile=kdf_profile,
+                kdf_memory_kib=kdf_memory_kib,
+                kdf_time_cost=kdf_time_cost,
+                kdf_parallelism=kdf_parallelism,
+            )
+        except ValueError as exc:
+            flash(str(exc), "error")
             return _redirect_back(return_to)
 
     # ── Resolve recipient public key ──
@@ -521,6 +561,10 @@ def encode_view():
         "encryption_mode": encryption_mode,
         "password": password,
         "public_key": public_key,
+        "kdf_profile": kdf_profile,
+        "kdf_memory_kib": kdf_memory_kib,
+        "kdf_time_cost": kdf_time_cost,
+        "kdf_parallelism": kdf_parallelism,
         "chunk_size": chunk_size,
         "fec_group_size": fec_group_size,
         "fec_type": fec_type,

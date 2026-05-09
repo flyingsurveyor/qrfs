@@ -1,7 +1,7 @@
 """Conformance tests for QRFS byte-level test vectors.
 
 These tests pin specific bytes that QRFS must produce (or be able to consume),
-today and forever within the current format versions (QFSP v1, QFSC v5, QRC3).
+today and forever within the current format versions (QFSP v1, QFSC v6, QRC3).
 
 The vectors live in ``tests/vectors/`` and are described in full in
 ``tests/vectors/README.md``.  The manifest ``manifest.json`` records the
@@ -173,17 +173,61 @@ def test_clear_signed_envelopes_verify_and_unwrap() -> None:
 
 
 def test_password_envelopes_decrypt_with_fixed_password() -> None:
-    """Password envelopes must decrypt to the QFSP using the manifest's fixed password."""
+    """Interactive/default password envelopes must decrypt to the expected QFSP."""
     from qrfs.core.crypto_utils import decrypt_file_payload_password  # noqa: PLC0415
 
     manifest = _load_manifest()
     password = manifest["fixtures"]["password"]
+    profile_names = ("interactive", "default")
 
-    for qfsc_path in sorted((VECTORS_DIR / "envelopes/password").glob("*.qfsc")):
+    for profile_name in profile_names:
+        profile_dir = VECTORS_DIR / f"envelopes/password_{profile_name}"
+        for qfsc_path in sorted(profile_dir.glob("*.qfsc")):
+            stem = qfsc_path.stem
+            expected = (VECTORS_DIR / "packaged" / f"{stem}.qfsp").read_bytes()
+            payload, _ = decrypt_file_payload_password(qfsc_path.read_bytes(), password)
+            assert payload == expected, f"Password envelope mismatch for {profile_name}/{stem!r}"
+
+
+@pytest.mark.slow
+def test_password_sensitive_envelopes_decrypt_with_fixed_password() -> None:
+    from qrfs.core.crypto_utils import decrypt_file_payload_password  # noqa: PLC0415
+
+    manifest = _load_manifest()
+    password = manifest["fixtures"]["password"]
+    profile_dir = VECTORS_DIR / "envelopes/password_sensitive"
+    for qfsc_path in sorted(profile_dir.glob("*.qfsc")):
         stem = qfsc_path.stem
         expected = (VECTORS_DIR / "packaged" / f"{stem}.qfsp").read_bytes()
         payload, _ = decrypt_file_payload_password(qfsc_path.read_bytes(), password)
-        assert payload == expected, f"Password envelope mismatch for {stem!r}"
+        assert payload == expected, f"Password envelope mismatch for sensitive/{stem!r}"
+
+
+def test_password_envelope_headers_match_manifest_kdf_profile() -> None:
+    from qrfs.core.crypto_utils import inspect_crypto_blob  # noqa: PLC0415
+
+    manifest = _load_manifest()
+    for profile_name, expected in manifest["fixtures"]["kdf_profiles"].items():
+        profile_dir = VECTORS_DIR / f"envelopes/password_{profile_name}"
+        for qfsc_path in sorted(profile_dir.glob("*.qfsc")):
+            info = inspect_crypto_blob(qfsc_path.read_bytes())
+            assert info["mode"] == "password"
+            assert info["kdf_algorithm"] == expected["kdf_algorithm"]
+            assert info["kdf_memory_kib"] == expected["kdf_memory_kib"]
+            assert info["kdf_time_cost"] == expected["kdf_time_cost"]
+            assert info["kdf_parallelism"] == expected["kdf_parallelism"]
+            assert info["kdf_salt_length"] == expected["kdf_salt_length"]
+            assert info["kdf_output_length"] == expected["kdf_output_length"]
+            assert info["kdf_profile"] == profile_name
+
+
+def test_qfsc_v5_is_explicitly_rejected() -> None:
+    from qrfs.core.crypto_utils import decrypt_file_payload_clear  # noqa: PLC0415
+
+    sample = (VECTORS_DIR / "envelopes/clear/small_text.qfsc").read_bytes()
+    fake_v5 = sample[:4] + bytes([5]) + sample[5:]
+    with pytest.raises(ValueError, match="QFSC v5 envelopes are not supported"):
+        decrypt_file_payload_clear(fake_v5)
 
 
 # ---------------------------------------------------------------------------

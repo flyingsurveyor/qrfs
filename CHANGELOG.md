@@ -21,7 +21,7 @@ This project follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) co
 ## Version note
 
 **App version** (this file) and **format version** are tracked independently.
-The on-wire format versions — `QFSP v1`, `QFSC v5`, `QRC3` — follow the
+The on-wire format versions — `QFSP v1`, `QFSC v6`, `QRC3` — follow the
 semantics described in [`docs/FORMAT.md`](docs/FORMAT.md) and bump only on
 breaking or incompatible format changes, independently from the app version.
 
@@ -29,9 +29,18 @@ breaking or incompatible format changes, independently from the app version.
 
 ## [Unreleased]
 
+### Breaking changes
+
+- QFSC envelope format bumped from v5 to v6. v5 envelopes are no longer readable.
+  Pre-1.0, no migration provided.
+
 ### Added
 
-- **Official byte-level test vectors** for `QFSP v1`, `QFSC v5`, and `QRC3`
+- Explicit KDF parameters in `QFSC v6` envelope header.
+- Three pre-defined KDF profiles: `interactive`, `default`, `sensitive`.
+- CLI flags `--kdf-profile` and `--kdf-memory/--kdf-time/--kdf-parallel`.
+- Flask UI dropdown for selecting KDF profile during encryption.
+- **Official byte-level test vectors** for `QFSP v1`, `QFSC v6`, and `QRC3`
   under `tests/vectors/`, plus a conformance test in `tests/test_vectors.py`.
   Vectors include all four QFSC modes (clear, clear-signed, password, pubkey)
   for six representative input files (empty, one-byte, ASCII text, UTF-8/emoji,
@@ -98,6 +107,8 @@ breaking or incompatible format changes, independently from the app version.
 
 ### Changed
 
+- Default KDF cost raised from 64 MiB / 3 iter to **256 MiB / 3 iter**
+  (OWASP-baseline aligned).
 - **Chunk parity index semantics (`QRC3`)**: parity chunks now carry the correct
   local `parity_index` within each FEC group instead of reusing `group_index`.
   **Pre-1.0 break, no migration provided.**
@@ -129,12 +140,12 @@ breaking or incompatible format changes, independently from the app version.
 
 ### Removed
 
+- QFSC v5 reading.
 - **`qrfs.py.bak`**: stale backup file removed from the repository.
 - **`rescue.js`** (repo root): moved to `tools/rescue.js` (see above).
 - Legacy chunk-format support (`QRC1`, `QRC2`) in decoders and chunk-header
   parsing paths.
 
-### Format versions (unchanged)
+### Format versions
 
-`QFSP v1` · `QFSC v5` · `QRC3` — versions unchanged in this release.
-Pre-1.0 format behavior changed without a version bump (see entries above).
+`QFSP v1` · `QFSC v6` · `QRC3`.
