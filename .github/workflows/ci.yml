@@ -30,6 +30,7 @@ jobs:
         run: pip install -e .[dev]
 
       - name: Run tests
+        # Use `pytest -m 'not slow'` to skip Argon2id-heavy conformance tests during fast local iteration.
         run: pytest
 
   lint:

@@ -566,3 +566,27 @@ For the current reference implementation, see:
 - `qrfs/core/qrdecode.py`
 
 For practical recovery guidance, see `docs/MANUAL_RECOVERY.md`.
+
+---
+
+## 12. Reference vectors
+
+The canonical byte-level reference for the format versions described in this
+document lives in `tests/vectors/`.  Every file in that directory is listed
+in `tests/vectors/manifest.json` together with its SHA-256 digest and a
+`"deterministic"` flag.
+
+For `QFSP v1`, `QFSC v5`, and `QRC3`, the vectors in `tests/vectors/` are
+the authoritative reference.  Any byte change to a `deterministic: true` file
+is a **format break** and must come with a version bump.
+
+The conformance test in `tests/test_vectors.py` reads the manifest and verifies:
+
+- every deterministic file matches its recorded SHA-256
+- QFSP payloads unpack to the original inputs
+- QFSC envelopes decrypt correctly with the fixtures from the manifest
+- QRC chunks reconstruct to the expected envelope, with and without FEC loss
+
+See `tests/vectors/README.md` for the full specification, fixture values, and
+instructions for external implementers.
+

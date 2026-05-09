@@ -65,10 +65,14 @@ select = ["E", "F", "W", "I", "B", "UP"]
 [tool.ruff.lint.per-file-ignores]
 "qrfs/routes/decode.py" = ["F401"]
 "tools/diagnose_pdf.py" = ["E401", "F401", "E701", "E722"]
+"tests/vectors/generate.py" = ["E402", "I001"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-ra"
+markers = [
+    "slow: marks tests that are slow (mainly Argon2id key derivation); deselect with -m 'not slow'",
+]
 
 [tool.bandit]
 skips = ["B110", "B112", "B311", "B404", "B603", "B607"]

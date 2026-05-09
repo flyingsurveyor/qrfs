@@ -1,0 +1,338 @@
+{
+  "qrfs_format_versions": {
+    "QFSP": 1,
+    "QFSC": 5,
+    "QRC": 3
+  },
+  "generated_at": "2026-05-09T00:00:00Z",
+  "generator": "tests/vectors/generate.py",
+  "fixtures": {
+    "file_id_hex": "00112233445566778899aabbccddeeff",
+    "argon2_salt_hex": "0123456789abcdef0123456789abcdef",
+    "aes_gcm_nonce_hex": "deadbeefcafebabedeadbeef",
+    "password": "correct horse battery staple xx",
+    "argon2id_opslimit": 3,
+    "argon2id_memlimit_mib": 64,
+    "chunk_size_for_vectors": 100
+  },
+  "files": [
+    {
+      "path": "keys/recipient_x25519.sk",
+      "sha256": "cb0c1d2d9483ff8e50c098abb85177f78b38a6d04558442075d36a533896e6a8",
+      "size": 32,
+      "deterministic": true
+    },
+    {
+      "path": "keys/recipient_x25519.pk",
+      "sha256": "ff3979ed4cb6b963f0e7fb6129af95ea09cfa94dd7cb3741f017e8204b314f71",
+      "size": 32,
+      "deterministic": true
+    },
+    {
+      "path": "keys/signer_ed25519.sk",
+      "sha256": "03f1dac17b438f115b002893e3d0231858bf8d2d9b6975b0d5c05fb1a48bc426",
+      "size": 32,
+      "deterministic": true
+    },
+    {
+      "path": "keys/signer_ed25519.pk",
+      "sha256": "f55e4fbf755a77d21a561383212293f5ad85fe375b93cdce90cb591b1bddf733",
+      "size": 32,
+      "deterministic": true
+    },
+    {
+      "path": "inputs/empty.bin",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "size": 0,
+      "deterministic": true
+    },
+    {
+      "path": "inputs/one_byte.bin",
+      "sha256": "559aead08264d5795d3909718cdd05abd49572e84fe55590eef31a88a08fdffd",
+      "size": 1,
+      "deterministic": true
+    },
+    {
+      "path": "inputs/small_text.txt",
+      "sha256": "5d56ecd051393a31075f01f23e53e5eb54d0e978b6e0be74480537f91a303ccc",
+      "size": 633,
+      "deterministic": true
+    },
+    {
+      "path": "inputs/utf8_emoji.txt",
+      "sha256": "cb280e6f43d718918f10f57ed14e21de76ec05fcfeb096ea26c2d722942b7a6c",
+      "size": 122,
+      "deterministic": true
+    },
+    {
+      "path": "inputs/incompressible.bin",
+      "sha256": "03b93493c266ecfb7de954513f440e67ecd76b35fc703affae96482086da2f7a",
+      "size": 4096,
+      "deterministic": true
+    },
+    {
+      "path": "inputs/compressible.bin",
+      "sha256": "86c409174bd17f081f38393563251157bf63c161bb7f91e39607abe2d98c0573",
+      "size": 4096,
+      "deterministic": true
+    },
+    {
+      "path": "packaged/empty.qfsp",
+      "sha256": "d73deda3c325f56dbdfff7c9a9fe57b2d085ea2e57bb690e0484cbc6b1f1a008",
+      "size": 113,
+      "deterministic": true
+    },
+    {
+      "path": "packaged/one_byte.qfsp",
+      "sha256": "e5ed35d2bf87b329c96b760df65371d3623241fd7c73763544698437a09de05b",
+      "size": 117,
+      "deterministic": true
+    },
+    {
+      "path": "packaged/small_text.qfsp",
+      "sha256": "999cef8918a4c5582214bf999bb53194ff25a8151af0fac961903319a596647c",
+      "size": 491,
+      "deterministic": true
+    },
+    {
+      "path": "packaged/utf8_emoji.qfsp",
+      "sha256": "5a930178cdfc0ebb12730800e5ac397fc60285a31b0219c9fd0bdf78f5bfd249",
+      "size": 243,
+      "deterministic": true
+    },
+    {
+      "path": "packaged/incompressible.qfsp",
+      "sha256": "4d89fc6161a550dc1d28271d05a8d5be5f34a5bc193e2a5a5e928f7832ba6001",
+      "size": 4221,
+      "deterministic": true
+    },
+    {
+      "path": "packaged/compressible.qfsp",
+      "sha256": "8cfe8df9e6ad46739f0b3ee8db3fbd447aa54efb148b78040c12ed4e5f41c3a1",
+      "size": 167,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/clear/empty.qfsc",
+      "sha256": "4eeb7e0680d4da78e206a2e593f425da0fa5eff6f09af5cf21f739f1aaeba86c",
+      "size": 120,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/clear_signed/empty.qfsc",
+      "sha256": "dca443b47f39c11f9abcf6fc0dde64990490bd8f1a2b105fe3673a789dab4271",
+      "size": 224,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password/empty.qfsc",
+      "sha256": "40d80ff875e6207ee5198135b05b327647d230ca240eb7f0652ba7dc3dcdcaf5",
+      "size": 164,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/pubkey/empty.qfsc",
+      "sha256": "40baec6d0f884a802f9ef39b839d53f1c190e9480e989443fa6fddc7972e3e3f",
+      "size": 238,
+      "deterministic": false,
+      "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
+    },
+    {
+      "path": "envelopes/clear/one_byte.qfsc",
+      "sha256": "27d692a669e28d97e4bd43030f1cb7ad1fb3e4a212f90637669f63c96cbcf79b",
+      "size": 124,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/clear_signed/one_byte.qfsc",
+      "sha256": "513a5c6e0f8ee9a06be6cfcbde2420b11ab70eb77d66f59174b9da752e758738",
+      "size": 228,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password/one_byte.qfsc",
+      "sha256": "d73cb4503f26f12ae71215d5bc4b0b6478beeb75040e4bfcb03161862ec55ebb",
+      "size": 168,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/pubkey/one_byte.qfsc",
+      "sha256": "628d75ecd4484359e94055f0866d0b366996b58c33eaddc8fc5e9425de674388",
+      "size": 242,
+      "deterministic": false,
+      "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
+    },
+    {
+      "path": "envelopes/clear/small_text.qfsc",
+      "sha256": "178e78bf2bbafd635018f8f715f04aad6e979537397c160ebcbc24534ab8e00c",
+      "size": 498,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/clear_signed/small_text.qfsc",
+      "sha256": "2a4f0a32ab484c57d6dd8e302f554d0b2cb71dc3220364d3b4b0ce4ba62d4dd5",
+      "size": 602,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password/small_text.qfsc",
+      "sha256": "21045a50ecc6b63c9f4bf0c8afc7263d61f666dfb8d5a59394283ae6c119f23c",
+      "size": 542,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/pubkey/small_text.qfsc",
+      "sha256": "67bf4971c151e2e07a81829fda998bdb4fbe4c65a9a02e096dbd48263392b126",
+      "size": 616,
+      "deterministic": false,
+      "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
+    },
+    {
+      "path": "envelopes/clear/utf8_emoji.qfsc",
+      "sha256": "c64755993ca5cae7fc06089af9d9fd3bd0def8622dc25c895092f9765ec8697a",
+      "size": 250,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/clear_signed/utf8_emoji.qfsc",
+      "sha256": "607e3904e47f277a88945a4a6f6da618fe15ac6e210ea865ed3bf162c72fd8cc",
+      "size": 354,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password/utf8_emoji.qfsc",
+      "sha256": "d2a50895e216946ab35bc6c3cafc6fe18b92389fc81170a26e55a782adb2ea92",
+      "size": 294,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/pubkey/utf8_emoji.qfsc",
+      "sha256": "eee14a689441aa5cf4f61e81cdaec6412db0f1ea6bcd40836483270bf0561038",
+      "size": 368,
+      "deterministic": false,
+      "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
+    },
+    {
+      "path": "envelopes/clear/incompressible.qfsc",
+      "sha256": "81c74b3eceff9612129aaf7e3fbec09e227575c1c51ad51f5b9ee5eec746f83b",
+      "size": 4228,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/clear_signed/incompressible.qfsc",
+      "sha256": "a8e742136729b3469fd49909be2f03a73ce3d42632041b1c62a7f6c3b3d360e5",
+      "size": 4332,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password/incompressible.qfsc",
+      "sha256": "2ac933cf8d68d7806a783fb74e7f9b169941e1108cbbb6250b4a7704dec1edee",
+      "size": 4272,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/pubkey/incompressible.qfsc",
+      "sha256": "d857a97a5af2802f59f7186a2f8db386b79e5e8d3adab2553ac246ce25b5a284",
+      "size": 4346,
+      "deterministic": false,
+      "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
+    },
+    {
+      "path": "envelopes/clear/compressible.qfsc",
+      "sha256": "cd6a820ed6932a6245a771c39a539d2719a61343eeee103363a9d581df694987",
+      "size": 174,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/clear_signed/compressible.qfsc",
+      "sha256": "01dd5cead111e7514715b810c15296db36858a6f40945ab631b7e63e14207b5f",
+      "size": 278,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/password/compressible.qfsc",
+      "sha256": "7204972bc726db6ac35b0fddc758c533887617ac08db954901ea769d775d9e5a",
+      "size": 218,
+      "deterministic": true
+    },
+    {
+      "path": "envelopes/pubkey/compressible.qfsc",
+      "sha256": "9ade7b5e8eda4f92f3a60863bd16337c8832064b4968a4261768d95708b97a98",
+      "size": 292,
+      "deterministic": false,
+      "note": "SealedBox ephemeral key is non-deterministic; conformance test verifies decryption only."
+    },
+    {
+      "path": "chunks/small_text/000.qrc",
+      "sha256": "8bbbf55d6535b4e58e862e7388211dd8ef438e1e48dcbe02d0491ad59aedf1ae",
+      "size": 131,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text/001.qrc",
+      "sha256": "a8efd4a40f2a59815582fa2d13737904f825c88a3aecc4b2dcc444465dbfdb37",
+      "size": 131,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text/002.qrc",
+      "sha256": "dce74c844c6e395801c1521bff1a0d12f210397f6dd4c6bffd394e5247ab4d0f",
+      "size": 131,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text/003.qrc",
+      "sha256": "7240e9e6a548cf85cb0d10d97ae1f622ae4fc94151b883dce290e12fc0d6dc07",
+      "size": 131,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text/004.qrc",
+      "sha256": "5f79e1e60ebddf7859e93024fb997870e55c373f1dc5a8571f44bbd94f702b2f",
+      "size": 129,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text_fec_xor/000.qrc",
+      "sha256": "1594f78ab99c06c8c779b8fbddb6839e35b83ba8018e05a0def6bd3c1513ba19",
+      "size": 143,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text_fec_xor/001.qrc",
+      "sha256": "681d012580e4b3971265c1dd2385b4ca91b1466bc64524206162065989b01b5d",
+      "size": 143,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text_fec_xor/002.qrc",
+      "sha256": "05f30fe54975b78b0cfbba12d09af6f1300c04c8436b7f472a1a4bef0c6de7bf",
+      "size": 143,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text_fec_xor/p000.qrc",
+      "sha256": "99c0411e20303229d56415d26bb2329a609a8f9f75a4e893bd6a39b5330f0dec",
+      "size": 151,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text_fec_xor/003.qrc",
+      "sha256": "c80ef455651c2f6d8a47dd00c48660c31f14c47f84410c9bdc21cd1f0f56b887",
+      "size": 143,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text_fec_xor/004.qrc",
+      "sha256": "25343aecf624ebe2c61974fc8878344e28730bf190970457a49c9a468ab2c241",
+      "size": 141,
+      "deterministic": true
+    },
+    {
+      "path": "chunks/small_text_fec_xor/p001.qrc",
+      "sha256": "f9048d8bb4db17be4abf7fee2c5d7d804ae196da35e3b5eb1b838f4321bc0d49",
+      "size": 149,
+      "deterministic": true
+    }
+  ]
+}

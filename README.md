@@ -370,6 +370,8 @@ ruff check .
 
 CI runs the same checks (`pytest`, `ruff check .`, and `bandit -r qrfs/core`) on every push to `main` and on every pull request, across Python 3.11, 3.12, and 3.13.
 
+The on-wire format is pinned by reference vectors under `tests/vectors/` — see `docs/FORMAT.md` §12.
+
 ---
 
 ## 📜 License

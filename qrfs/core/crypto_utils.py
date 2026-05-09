@@ -95,10 +95,29 @@ def encrypt_file_payload_clear(payload: bytes,
 
 
 def encrypt_file_payload_password(payload: bytes, password: str,
-                                  sender_signing_private_key_b64: str | None = None) -> bytes:
+                                  sender_signing_private_key_b64: str | None = None,
+                                  *, _salt: bytes | None = None, _nonce: bytes | None = None) -> bytes:
+    """Encrypt *payload* with a password using Argon2id + AES-256-GCM.
+
+    Parameters
+    ----------
+    payload:                       Raw QFSP bytes to encrypt.
+    password:                      Encryption password (min 14 characters).
+    sender_signing_private_key_b64: Optional Ed25519 signing key (base64).
+    _salt:  *Testing/vector-generation only.* Fixed 16-byte Argon2id salt.
+            Default ``None`` generates fresh ``os.urandom(16)`` each call,
+            preserving production non-determinism.
+    _nonce: *Testing/vector-generation only.* Fixed 12-byte AES-GCM nonce.
+            Default ``None`` generates fresh ``os.urandom(12)`` each call,
+            preserving production non-determinism.
+    """
     _validate_password(password)
-    salt = os.urandom(SALT_LEN)
-    nonce = os.urandom(NONCE_LEN)
+    salt = _salt if _salt is not None else os.urandom(SALT_LEN)
+    nonce = _nonce if _nonce is not None else os.urandom(NONCE_LEN)
+    if len(salt) != SALT_LEN:
+        raise ValueError(f'_salt must be exactly {SALT_LEN} bytes.')
+    if len(nonce) != NONCE_LEN:
+        raise ValueError(f'_nonce must be exactly {NONCE_LEN} bytes.')
     key = _derive_key(password, salt)
     flags = FLAG_SIGNED if sender_signing_private_key_b64 else 0
     header = MAGIC + struct.pack('>BBB', VERSION, MODE_PASSWORD, flags) + salt + nonce
