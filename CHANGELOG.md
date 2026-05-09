@@ -29,6 +29,14 @@ breaking or incompatible format changes, independently from the app version.
 
 ## [Unreleased]
 
+### Added
+
+- **Normative format specification: `docs/SPEC-1.0.md`**. The QRFS wire format is now
+  independently re-implementable from the spec alone, without reading the reference
+  implementation. The document covers all three format layers (`QFSP v1`, `QFSC v6`, `QRC3`),
+  cryptographic primitives, conformance requirements, security considerations, and a worked
+  example with annotated hex dumps. Uses RFC 2119 keywords throughout.
+
 ### Breaking changes
 
 - QFSC envelope format bumped from v5 to v6. v5 envelopes are no longer readable.
