@@ -134,7 +134,9 @@ def _run_encrypt_password_cli(argv: list[str]) -> int:
     )
     out_path = Path(args.output_path)
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    out_path.write_bytes(encrypted)
+    out_path.write_bytes(
+        encrypted
+    )  # codeql[py/clear-text-storage-sensitive-data] encrypted envelope output by design
     print(f"[QRFS] Wrote password envelope: {out_path}", file=sys.stderr)
     return 0
 
