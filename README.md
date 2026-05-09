@@ -152,13 +152,36 @@ Security relies on:
 
 ## 🛠 Installation
 
-QRFS starts in plain HTTP by default.
+QRFS binds to `127.0.0.1` (loopback only) by default, so a fresh
+`python qrfs.py` is **not reachable from the network** unless you opt in.
 
 - On the same device: `http://127.0.0.1:5000`
-- From another device on the same LAN: `http://<device-ip>:5000`
+- From another device on the same LAN: `python qrfs.py --lan` → `http://<device-ip>:5000`
 
 Run `python qrfs.py --debug` only if you explicitly want Flask debug mode.
 The default non-debug path uses Waitress when installed.
+
+### Security defaults
+
+**Loopback-only by default.**
+A fresh `python qrfs.py` with no arguments binds to `127.0.0.1:5000` and is
+reachable only from the same device.  Use `--lan` (or `QRFS_LAN=1`) to expose
+QRFS on the local network.  Use `--host <addr>` for full control.
+
+**Optional self-signed HTTPS.**
+Add `--https` to run the server over TLS.  On first run QRFS auto-generates an
+Ed25519 self-signed certificate under `data/tls/` (key stored with mode
+`0o600`) and prints its SHA-256 fingerprint at startup.  Subsequent runs reuse
+the same certificate.  Supply `--cert <path> --key <path>` to use your own
+certificate instead.
+
+> **Note:** Self-signed TLS does not protect against active MITM unless you
+> verify and pin the certificate fingerprint out-of-band on each remote device.
+
+**KDF rate limiting.**
+Password-based decode attempts (Argon2id) are rate-limited to **5 per IP per
+60 seconds**.  The 6th attempt within the window returns HTTP 429 with a
+`Retry-After` header.
 
 ### Raspberry Pi / Debian / Ubuntu
 

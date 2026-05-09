@@ -54,10 +54,16 @@ in that library to its upstream maintainers.
   header fields — filename, MIME type, and original size — are transported in
   cleartext. In password or public-key mode these fields are inside the
   AES-256-GCM envelope and are therefore confidential.
-- **Traffic analysis on the local Flask server.** QRFS binds to `0.0.0.0` by
-  default. On a shared or networked host, the web interface is reachable by anyone
-  on the local network. Use a firewall or bind to `127.0.0.1` if this is a
-  concern.
+- **Traffic analysis on the local Flask server.** Even with the loopback-only
+  default, exposing QRFS via `--lan` on an untrusted network (café, conference,
+  hotspot) allows anyone on the same L2 segment to observe traffic in plain
+  HTTP.  Use `--lan --https` and verify the certificate fingerprint out-of-band
+  to mitigate passive eavesdropping on untrusted networks.
+- **Self-signed TLS does not protect against active MITM unless the fingerprint
+  is pinned out-of-band.** When `--https` is used without a CA-signed
+  certificate, an attacker on the network can substitute their own certificate
+  unless the user verifies the SHA-256 fingerprint printed at startup on every
+  remote device before entering any credentials.
 - **Supply-chain attacks on dependencies.** QRFS relies on `cryptography`,
   `PyNaCl`, `Flask`, `reportlab`, `pyzbar`, and other third-party packages. A
   compromised upstream dependency could undermine all security guarantees.
@@ -67,7 +73,76 @@ in that library to its upstream maintainers.
 
 ---
 
-## Cryptographic primitives
+## Network exposure
+
+### Default binding
+
+QRFS binds to `127.0.0.1` (loopback) by default.  A fresh `python qrfs.py`
+with no arguments is **not reachable from any other device** on the network.
+
+### Opt-in LAN exposure
+
+Pass `--lan` (or set `QRFS_LAN=1`) to bind to `0.0.0.0` (all interfaces).
+This is equivalent to `--host 0.0.0.0` and is intended for trusted home LANs.
+On any untrusted network QRFS prints a multi-line WARNING banner to stderr when
+this mode is active without TLS.
+
+Host-resolution precedence (strongest first):
+
+1. `--host <value>` on the command line.
+2. `QRFS_HOST` environment variable.
+3. `--lan` / `QRFS_LAN=1` → `0.0.0.0`.
+4. Default → `127.0.0.1`.
+
+If both `--host` and `--lan` are supplied, `--host` wins and a warning is
+printed to stderr (`--lan ignored because --host was provided explicitly`).
+
+### Optional self-signed HTTPS
+
+Pass `--https` (or set `QRFS_HTTPS=1`) to enable TLS.
+
+- Without `--cert`/`--key`: QRFS auto-generates an Ed25519 self-signed
+  certificate under `data/tls/cert.pem` and `data/tls/key.pem` (key mode
+  `0o600`).  The certificate is reused on subsequent runs and is regenerated
+  automatically if it would expire within 30 days.
+- With `--cert <path> --key <path>`: the provided certificate files are used
+  instead and no auto-generation takes place.
+
+The SHA-256 fingerprint of the active certificate is printed at startup.
+Pin this fingerprint on remote devices to detect MITM substitution.
+
+> **Important:** Self-signed TLS does not protect against active MITM unless
+> the fingerprint is verified and pinned out-of-band on every remote device
+> before credentials are entered.
+
+Because Waitress does not support TLS natively, `--https` always uses Flask's
+built-in server with an `ssl.SSLContext`.  This is intentional: TLS is an
+opt-in, not the high-throughput default path.
+
+---
+
+## Rate limiting
+
+Password-based decode attempts invoke Argon2id (memory-hard KDF).  To limit
+brute-force attacks, the decode unlock endpoints are rate-limited to **5
+attempts per IP address per 60-second sliding window**.
+
+When the limit is exceeded the server returns:
+
+```
+HTTP 429 Too Many Requests
+Retry-After: <seconds>
+Content-Type: application/json
+
+{"error": "too_many_attempts", "retry_after": <seconds>}
+```
+
+The limiter is implemented in `qrfs/core/ratelimit.py` using an in-memory
+`dict[ip, deque[timestamp]]` protected by a `threading.Lock`.  It is a no-op
+when `app.config['TESTING']` is true so the test suite is not affected.  No
+external dependencies (e.g. Redis) are required.
+
+
 
 All primitives are used as provided by well-audited libraries (`cryptography`,
 `PyNaCl` / libsodium). No cryptographic algorithms are implemented from scratch.
