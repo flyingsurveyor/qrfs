@@ -41,8 +41,8 @@ from typing import Any
 # does NOT execute ``qrfs/__init__.py`` (which pulls in Flask and pyzbar,
 # neither of which is needed here).
 # ---------------------------------------------------------------------------
-_HERE = Path(__file__).parent       # tests/vectors/
-_REPO_ROOT = _HERE.parent.parent    # repo root
+_HERE = Path(__file__).parent  # tests/vectors/
+_REPO_ROOT = _HERE.parent.parent  # repo root
 sys.path.insert(0, str(_REPO_ROOT))
 if "qrfs" not in sys.modules:
     _qrfs_stub = _types.ModuleType("qrfs")
@@ -51,44 +51,44 @@ if "qrfs" not in sys.modules:
     sys.modules["qrfs"] = _qrfs_stub
 
 from qrfs.core.packaging import pack_file_payload  # noqa: E402
-from qrfs.core.crypto_utils import (               # noqa: E402
+from qrfs.core.crypto_utils import (  # noqa: E402
     encrypt_file_payload_clear,
     encrypt_file_payload_password,
     encrypt_file_payload_pubkey,
 )
-from qrfs.core.chunker import make_chunks           # noqa: E402
-from nacl.public import PrivateKey as _PrivateKey   # noqa: E402
-from nacl.signing import SigningKey as _SigningKey   # noqa: E402
+from qrfs.core.chunker import make_chunks  # noqa: E402
+from nacl.public import PrivateKey as _PrivateKey  # noqa: E402
+from nacl.signing import SigningKey as _SigningKey  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Fixed fixtures — NEVER change without bumping the format version
 # ---------------------------------------------------------------------------
 
-FILE_ID_HEX         = "00112233445566778899aabbccddeeff"
-SALT_HEX            = "0123456789abcdef0123456789abcdef"
-NONCE_HEX           = "deadbeefcafebabedeadbeef"
-PASSWORD            = "correct horse battery staple xx"
-ARGON2_OPSLIMIT     = 3
+FILE_ID_HEX = "00112233445566778899aabbccddeeff"
+SALT_HEX = "0123456789abcdef0123456789abcdef"
+NONCE_HEX = "deadbeefcafebabedeadbeef"
+PASSWORD = "correct horse battery staple xx"
+ARGON2_OPSLIMIT = 3
 ARGON2_MEMLIMIT_MIB = 64
 
 # 32-byte raw keys (fixed for reproducibility)
-_RECIPIENT_SK_RAW = bytes([0xEC] * 32)   # X25519 private key seed
-_SIGNER_SEED_RAW  = bytes([0xED] * 32)   # Ed25519 seed
+_RECIPIENT_SK_RAW = bytes([0xEC] * 32)  # X25519 private key seed
+_SIGNER_SEED_RAW = bytes([0xED] * 32)  # Ed25519 seed
 
 # Derived key material (computed once at import time)
 _RECIPIENT_SK_OBJ = _PrivateKey(_RECIPIENT_SK_RAW)
 _RECIPIENT_PK_RAW = bytes(_RECIPIENT_SK_OBJ.public_key)
-RECIPIENT_SK_B64  = base64.b64encode(_RECIPIENT_SK_RAW).decode("ascii")
-RECIPIENT_PK_B64  = base64.b64encode(_RECIPIENT_PK_RAW).decode("ascii")
+RECIPIENT_SK_B64 = base64.b64encode(_RECIPIENT_SK_RAW).decode("ascii")
+RECIPIENT_PK_B64 = base64.b64encode(_RECIPIENT_PK_RAW).decode("ascii")
 
-_SIGNER_SK_OBJ  = _SigningKey(_SIGNER_SEED_RAW)
-_SIGNER_VK_RAW  = bytes(_SIGNER_SK_OBJ.verify_key)
-SIGNER_SK_B64   = base64.b64encode(_SIGNER_SEED_RAW).decode("ascii")
-SIGNER_VK_B64   = base64.b64encode(_SIGNER_VK_RAW).decode("ascii")
+_SIGNER_SK_OBJ = _SigningKey(_SIGNER_SEED_RAW)
+_SIGNER_VK_RAW = bytes(_SIGNER_SK_OBJ.verify_key)
+SIGNER_SK_B64 = base64.b64encode(_SIGNER_SEED_RAW).decode("ascii")
+SIGNER_VK_B64 = base64.b64encode(_SIGNER_VK_RAW).decode("ascii")
 
 FILE_ID = bytes.fromhex(FILE_ID_HEX)
-SALT    = bytes.fromhex(SALT_HEX)
-NONCE   = bytes.fromhex(NONCE_HEX)
+SALT = bytes.fromhex(SALT_HEX)
+NONCE = bytes.fromhex(NONCE_HEX)
 
 # Chunk size used for the QRC chunk vectors.
 # 100 bytes keeps file count small while guaranteeing several data chunks
@@ -140,12 +140,12 @@ COMPRESSIBLE = (b"QRFS_PATTERN" * 342)[:4096]
 
 # (filename, mime_type, raw_bytes)
 INPUTS: list[tuple[str, str, bytes]] = [
-    ("empty.bin",          "application/octet-stream", b""),
-    ("one_byte.bin",       "application/octet-stream", ONE_BYTE),
-    ("small_text.txt",     "text/plain",                SMALL_TEXT),
-    ("utf8_emoji.txt",     "text/plain; charset=utf-8", UTF8_EMOJI),
-    ("incompressible.bin", "application/octet-stream",  INCOMPRESSIBLE),
-    ("compressible.bin",   "application/octet-stream",  COMPRESSIBLE),
+    ("empty.bin", "application/octet-stream", b""),
+    ("one_byte.bin", "application/octet-stream", ONE_BYTE),
+    ("small_text.txt", "text/plain", SMALL_TEXT),
+    ("utf8_emoji.txt", "text/plain; charset=utf-8", UTF8_EMOJI),
+    ("incompressible.bin", "application/octet-stream", INCOMPRESSIBLE),
+    ("compressible.bin", "application/octet-stream", COMPRESSIBLE),
 ]
 
 # ---------------------------------------------------------------------------
@@ -159,7 +159,9 @@ def _sha256(data: bytes) -> str:
 
 def _write(path: Path, data: bytes) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_bytes(data)  # codeql[py/clear-text-storage-sensitive-data] - test fixtures; password is public
+    path.write_bytes(
+        data
+    )  # codeql[py/clear-text-storage-sensitive-data] - test fixtures; password is public
 
 
 def _stem(filename: str) -> str:
@@ -191,8 +193,8 @@ def generate(out: Path) -> dict[str, Any]:
     # -- key material ---------------------------------------------------------
     record("keys/recipient_x25519.sk", _RECIPIENT_SK_RAW, deterministic=True)
     record("keys/recipient_x25519.pk", _RECIPIENT_PK_RAW, deterministic=True)
-    record("keys/signer_ed25519.sk",   _SIGNER_SEED_RAW,  deterministic=True)
-    record("keys/signer_ed25519.pk",   _SIGNER_VK_RAW,    deterministic=True)
+    record("keys/signer_ed25519.sk", _SIGNER_SEED_RAW, deterministic=True)
+    record("keys/signer_ed25519.pk", _SIGNER_VK_RAW, deterministic=True)
 
     # -- inputs ---------------------------------------------------------------
     for filename, _mime, data in INPUTS:
@@ -208,8 +210,8 @@ def generate(out: Path) -> dict[str, Any]:
 
     # -- envelopes (QFSC) -----------------------------------------------------
     for filename, _mime, _data in INPUTS:
-        stem   = _stem(filename)
-        qfsp   = qfsp_map[stem]
+        stem = _stem(filename)
+        qfsp = qfsp_map[stem]
 
         # mode 0 — clear (no signing)
         clear = encrypt_file_payload_clear(qfsp)
@@ -220,9 +222,7 @@ def generate(out: Path) -> dict[str, Any]:
         record(f"envelopes/clear_signed/{stem}.qfsc", clear_signed, deterministic=True)
 
         # mode 1 — password, fixed salt + nonce → fully deterministic
-        pw_env = encrypt_file_payload_password(
-            qfsp, PASSWORD, _salt=SALT, _nonce=NONCE
-        )
+        pw_env = encrypt_file_payload_password(qfsp, PASSWORD, _salt=SALT, _nonce=NONCE)
         record(f"envelopes/password/{stem}.qfsc", pw_env, deterministic=True)
 
         # mode 2 — pubkey; SealedBox ephemeral key is non-deterministic
@@ -261,6 +261,7 @@ def generate(out: Path) -> dict[str, Any]:
     )
     assert chunks_xor, "Expected at least one chunk for small_text_fec_xor"
     from qrfs.core.chunker import KIND_DATA  # noqa: PLC0415
+
     for c in chunks_xor:
         if c.kind == KIND_DATA:
             name = f"{c.index:03d}.qrc"
@@ -271,14 +272,14 @@ def generate(out: Path) -> dict[str, Any]:
     # -- manifest.json --------------------------------------------------------
     manifest: dict[str, Any] = {
         "qrfs_format_versions": {"QFSP": 1, "QFSC": 5, "QRC": 3},
-        "generated_at": "2026-05-09T00:00:00Z",
+        "generated_at": "2026-05-09T13:52:56Z",
         "generator": "tests/vectors/generate.py",
         "fixtures": {
-            "file_id_hex":           FILE_ID_HEX,
-            "argon2_salt_hex":       SALT_HEX,
-            "aes_gcm_nonce_hex":     NONCE_HEX,
-            "password":              PASSWORD,
-            "argon2id_opslimit":     ARGON2_OPSLIMIT,
+            "file_id_hex": FILE_ID_HEX,
+            "argon2_salt_hex": SALT_HEX,
+            "aes_gcm_nonce_hex": NONCE_HEX,
+            "password": PASSWORD,
+            "argon2id_opslimit": ARGON2_OPSLIMIT,
             "argon2id_memlimit_mib": ARGON2_MEMLIMIT_MIB,
             "chunk_size_for_vectors": CHUNK_SIZE_FOR_VECTORS,
         },
@@ -364,7 +365,7 @@ def _main() -> None:
     else:
         print(f"Generating vectors into {out} …")
         manifest = generate(out)
-        det     = sum(1 for f in manifest["files"] if f["deterministic"])
+        det = sum(1 for f in manifest["files"] if f["deterministic"])
         non_det = len(manifest["files"]) - det
         total_size = sum(f["size"] for f in manifest["files"])
         print(

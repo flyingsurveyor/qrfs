@@ -37,40 +37,23 @@ function bytesToHex(bytes) {
 }
 function parseChunkHeader(bytes) {
   const magic = String.fromCharCode(bytes[0], bytes[1], bytes[2], bytes[3]);
+  if (magic !== 'QRC3') return null;
   const view = new DataView(bytes.buffer, bytes.byteOffset);
   const fileIdHex = bytes.length >= 21 ? bytesToHex(bytes.slice(5, 21)) : null;
-  if (magic === 'QRC1') {
-    if (bytes.length < 31) return null;
-    const index = view.getUint32(21);
-    const total = view.getUint32(25);
-    return { magic, fileIdHex, index, total, kind: 0, fecType: 0, groupIndex: 0, groupSize: 0, parityCount: 0, parityIndex: 0, uniqueKey: `d:${index}` };
-  }
-  if (magic === 'QRC2') {
-    if (bytes.length < 38) return null;
-    const kind = view.getUint8(21);
-    const index = view.getUint32(22);
-    const total = view.getUint32(26);
-    const groupIndex = view.getUint32(32);
-    const groupSize = view.getUint16(36);
-    return { magic, fileIdHex, index, total, kind, fecType: kind === 1 ? 1 : 0, groupIndex, groupSize, parityCount: kind === 1 ? 1 : 0, parityIndex: 0, uniqueKey: kind === 1 ? `p:${groupIndex}:0` : `d:${index}` };
-  }
-  if (magic === 'QRC3') {
-    if (bytes.length < 43) return null;
-    const kind = view.getUint8(21);
-    const fecType = view.getUint8(22);
-    const index = view.getUint32(23);
-    const total = view.getUint32(27);
-    const groupIndex = view.getUint32(33);
-    const groupSize = view.getUint16(37);
-    const parityCount = view.getUint16(39);
-    const parityIndex = view.getUint16(41);
-    return { magic, fileIdHex, index, total, kind, fecType, groupIndex, groupSize, parityCount, parityIndex, uniqueKey: kind === 1 ? `p:${groupIndex}:${parityIndex}` : `d:${index}` };
-  }
-  return null;
+  if (bytes.length < 43) return null;
+  const kind = view.getUint8(21);
+  const fecType = view.getUint8(22);
+  const index = view.getUint32(23);
+  const total = view.getUint32(27);
+  const groupIndex = view.getUint32(33);
+  const groupSize = view.getUint16(37);
+  const parityCount = view.getUint16(39);
+  const parityIndex = view.getUint16(41);
+  return { magic, fileIdHex, index, total, kind, fecType, groupIndex, groupSize, parityCount, parityIndex, uniqueKey: kind === 1 ? `p:${groupIndex}:${parityIndex}` : `d:${index}` };
 }
 function fecLabel(header) {
   if (!header || header.kind !== 1) return '';
-  if (header.magic === 'QRC2' || header.fecType === 1) return 'XOR';
+  if (header.fecType === 1) return 'XOR';
   if (header.fecType === 2) return 'RS';
   return `FEC-${header.fecType}`;
 }

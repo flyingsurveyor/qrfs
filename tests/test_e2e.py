@@ -25,30 +25,34 @@ sys.path.insert(0, PROJECT_ROOT)
 
 
 def test_e2e_pack_encrypt_chunk_qr():
-    """Steps 1–9: pack → encrypt → chunk → QR encode → QR decode → reconstruct → decrypt → unpack."""
+    """Steps 1–9: pack → encrypt → chunk → QR encode → decode → reconstruct → decrypt → unpack."""
     test_filename = "test_data.csv"
     test_content = ("name,quantity,price\n" * 50).encode("utf-8")
     test_mime = "text/csv"
 
     # Pack
     from qrfs.core.packaging import pack_file_payload, unpack_file_payload
+
     packed = pack_file_payload(test_filename, test_mime, test_content, compress=True)
     assert packed
 
     # Encrypt
-    from qrfs.core.crypto_utils import encrypt_file_payload_password, decrypt_file_payload_auto
+    from qrfs.core.crypto_utils import decrypt_file_payload_auto, encrypt_file_payload_password
+
     password = "testpassword14chars!"
     encrypted = encrypt_file_payload_password(packed, password)
     assert encrypted
 
     # Chunk
-    from qrfs.core.chunker import make_chunks, reconstruct_from_chunks, parse_chunk
+    from qrfs.core.chunker import make_chunks, parse_chunk, reconstruct_from_chunks
+
     chunks = make_chunks(encrypted, chunk_size=900)
     assert len(chunks) > 0
 
     # QR encode
-    from qrfs.core.utils import b45encode, b45decode
     import qrcode
+
+    from qrfs.core.utils import b45decode, b45encode
 
     qr_images = []
     for c in chunks:
@@ -56,11 +60,12 @@ def test_e2e_pack_encrypt_chunk_qr():
         encoded = b45encode(raw)
         qr = qrcode.QRCode(
             error_correction=qrcode.constants.ERROR_CORRECT_M,
-            box_size=8, border=2,
+            box_size=8,
+            border=2,
         )
         qr.add_data(encoded, optimize=0)
         qr.make(fit=True)
-        img = qr.make_image(fill_color='black', back_color='white').convert('RGB')
+        img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
         qr_images.append(img)
     assert len(qr_images) == len(chunks)
 
@@ -89,11 +94,11 @@ def test_e2e_pack_encrypt_chunk_qr():
 
     # Unpack
     recovered = unpack_file_payload(decrypted)
-    assert recovered['file_bytes'] == test_content
+    assert recovered["file_bytes"] == test_content
 
 
 @pytest.mark.skipif(
-    shutil.which('pdftoppm') is None,
+    shutil.which("pdftoppm") is None,
     reason="pdftoppm (poppler-utils) not installed",
 )
 def test_e2e_pdf_roundtrip():
@@ -102,9 +107,9 @@ def test_e2e_pdf_roundtrip():
     test_content = ("name,quantity,price\n" * 50).encode("utf-8")
     test_mime = "text/csv"
 
-    from qrfs.core.packaging import pack_file_payload
-    from qrfs.core.crypto_utils import encrypt_file_payload_password
     from qrfs.core.chunker import make_chunks, reconstruct_from_chunks
+    from qrfs.core.crypto_utils import encrypt_file_payload_password
+    from qrfs.core.packaging import pack_file_payload
 
     packed = pack_file_payload(test_filename, test_mime, test_content, compress=True)
     password = "testpassword14chars!"
@@ -115,10 +120,12 @@ def test_e2e_pdf_roundtrip():
     try:
         pdf_path = os.path.join(tmp_dir, "test.pdf")
         from qrfs.core.pdfgen import build_qr_pdf
+
         build_qr_pdf(chunks, pdf_path, original_filename=test_filename)
         assert os.path.getsize(pdf_path) > 0
 
         from qrfs.core.qrdecode import decode_qr_bytes_from_pdf
+
         pdf_chunks, _ = decode_qr_bytes_from_pdf(pdf_path, return_stats=True)
         assert len(pdf_chunks) == len(chunks)
 
@@ -131,4 +138,5 @@ def test_e2e_pdf_roundtrip():
 if __name__ == "__main__":
     # Legacy direct execution: python tests/test_e2e.py
     import subprocess
+
     sys.exit(subprocess.call([sys.executable, "-m", "pytest", __file__, "-v"]))

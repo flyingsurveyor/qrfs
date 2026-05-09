@@ -34,12 +34,8 @@ jobs:
         run: pytest
 
   lint:
-    name: Lint (informational)
+    name: Lint
     runs-on: ubuntu-latest
-    # Lint is informational until the planned lint-cleanup PR removes the
-    # pre-1.0 per-file-ignores in pyproject.toml. After that, flip this
-    # back to a hard requirement by removing `continue-on-error`.
-    continue-on-error: true
 
     steps:
       - uses: actions/checkout@v4

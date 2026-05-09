@@ -21,11 +21,20 @@ class EncodeEstimate:
     fec_parity_chunks: int
 
 
-def estimate_encode_sizes(input_size: int, packed_size: int, encrypted_size: int, chunk_size: int, fec_group_size: int = 0, fec_parity_count: int = 1) -> EncodeEstimate:
+def estimate_encode_sizes(
+    input_size: int,
+    packed_size: int,
+    encrypted_size: int,
+    chunk_size: int,
+    fec_group_size: int = 0,
+    fec_parity_count: int = 1,
+) -> EncodeEstimate:
     if chunk_size <= 0:
-        raise ValueError('chunk_size must be positive.')
+        raise ValueError("chunk_size must be positive.")
     data_chunk_count = max(1, math.ceil(encrypted_size / chunk_size)) if encrypted_size else 1
-    fec_parity_chunks = (math.ceil(data_chunk_count / fec_group_size) * fec_parity_count) if fec_group_size else 0
+    fec_parity_chunks = (
+        (math.ceil(data_chunk_count / fec_group_size) * fec_parity_count) if fec_group_size else 0
+    )
     qr_count = data_chunk_count + fec_parity_chunks
     page_count = math.ceil(qr_count / QR_PER_PAGE)
     chunk_header_total = qr_count * CHUNK_HEADER_LEN

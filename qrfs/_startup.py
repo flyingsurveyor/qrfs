@@ -16,24 +16,26 @@ from pathlib import Path
 # Argument / environment helpers
 # ---------------------------------------------------------------------------
 
+
 def _env_flag_from(name: str, env: dict[str, str]) -> bool:
-    value = (env.get(name) or '').strip().lower()
-    return value in {'1', 'true', 'yes', 'on'}
+    value = (env.get(name) or "").strip().lower()
+    return value in {"1", "true", "yes", "on"}
 
 
 def _parse_arg_value_from(flag: str, argv: list[str]) -> str | None:
-    prefix = f'{flag}='
+    prefix = f"{flag}="
     for idx, arg in enumerate(argv[1:], start=1):
         if arg == flag and idx + 1 < len(argv):
             return argv[idx + 1]
         if arg.startswith(prefix):
-            return arg[len(prefix):]
+            return arg[len(prefix) :]
     return None
 
 
 # ---------------------------------------------------------------------------
 # Host resolution
 # ---------------------------------------------------------------------------
+
 
 def resolve_host(argv: list[str], env: dict[str, str]) -> str:
     """Return the effective bind host, applying precedence rules.
@@ -48,29 +50,30 @@ def resolve_host(argv: list[str], env: dict[str, str]) -> str:
     If both an explicit host (rule 1 or 2) and ``--lan`` are present, the
     explicit host wins and a warning is printed to stderr.
     """
-    explicit_host = _parse_arg_value_from('--host', argv)
-    env_host = env.get('QRFS_HOST', '').strip()
-    use_lan = '--lan' in argv or _env_flag_from('QRFS_LAN', env)
+    explicit_host = _parse_arg_value_from("--host", argv)
+    env_host = env.get("QRFS_HOST", "").strip()
+    use_lan = "--lan" in argv or _env_flag_from("QRFS_LAN", env)
 
     if explicit_host:
         if use_lan:
-            print('--lan ignored because --host was provided explicitly', file=sys.stderr)
+            print("--lan ignored because --host was provided explicitly", file=sys.stderr)
         return explicit_host
 
     if env_host:
         if use_lan:
-            print('--lan ignored because QRFS_HOST was provided explicitly', file=sys.stderr)
+            print("--lan ignored because QRFS_HOST was provided explicitly", file=sys.stderr)
         return env_host
 
     if use_lan:
-        return '0.0.0.0'
+        return "0.0.0.0"
 
-    return '127.0.0.1'
+    return "127.0.0.1"
 
 
 # ---------------------------------------------------------------------------
 # TLS certificate provisioning
 # ---------------------------------------------------------------------------
+
 
 def ensure_self_signed_cert(cert_dir: Path, hostnames: list[str]) -> tuple[Path, Path]:
     """Provision a self-signed TLS certificate, reusing it when still valid.
@@ -91,8 +94,8 @@ def ensure_self_signed_cert(cert_dir: Path, hostnames: list[str]) -> tuple[Path,
     from cryptography.x509.oid import ExtendedKeyUsageOID, NameOID
 
     cert_dir.mkdir(parents=True, exist_ok=True)
-    cert_path = cert_dir / 'cert.pem'
-    key_path = cert_dir / 'key.pem'
+    cert_path = cert_dir / "cert.pem"
+    key_path = cert_dir / "key.pem"
 
     # Reuse if both files exist and the cert is not expiring within 30 days.
     if cert_path.exists() and key_path.exists():
@@ -118,8 +121,8 @@ def ensure_self_signed_cert(cert_dir: Path, hostnames: list[str]) -> tuple[Path,
             san_entries.append(x509.DNSName(name))
 
     # Always include localhost / 127.0.0.1 in the SAN.
-    loopback_dns = x509.DNSName('localhost')
-    loopback_ip = x509.IPAddress(ipaddress.ip_address('127.0.0.1'))
+    loopback_dns = x509.DNSName("localhost")
+    loopback_ip = x509.IPAddress(ipaddress.ip_address("127.0.0.1"))
     if loopback_dns not in san_entries:
         san_entries.insert(0, loopback_dns)
     if loopback_ip not in san_entries:
@@ -127,7 +130,7 @@ def ensure_self_signed_cert(cert_dir: Path, hostnames: list[str]) -> tuple[Path,
 
     # Self-signed certificate (notBefore = now, notAfter = now + 825 days).
     now = datetime.now(tz=UTC)
-    cn = hostnames[0] if hostnames else 'localhost'
+    cn = hostnames[0] if hostnames else "localhost"
     subject = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, cn)])
     cert = (
         x509.CertificateBuilder()
@@ -183,6 +186,7 @@ def ensure_self_signed_cert(cert_dir: Path, hostnames: list[str]) -> tuple[Path,
 # Certificate fingerprint
 # ---------------------------------------------------------------------------
 
+
 def cert_fingerprint(cert_path: Path) -> str:
     """Return the SHA-256 fingerprint of a PEM certificate as ``AA:BB:...`` hex."""
     from cryptography import x509
@@ -192,19 +196,20 @@ def cert_fingerprint(cert_path: Path) -> str:
     cert = x509.load_pem_x509_certificate(cert_data)
     der = cert.public_bytes(serialization.Encoding.DER)
     sha256 = hashlib.sha256(der).digest()
-    return ':'.join(f'{b:02X}' for b in sha256)
+    return ":".join(f"{b:02X}" for b in sha256)
 
 
 # ---------------------------------------------------------------------------
 # Network helpers
 # ---------------------------------------------------------------------------
 
+
 def is_loopback(host: str) -> bool:
     """Return ``True`` if *host* is a loopback address or hostname."""
     try:
         return ipaddress.ip_address(host).is_loopback
     except ValueError:
-        return host == 'localhost'
+        return host == "localhost"
 
 
 def detect_lan_ips() -> list[str]:
