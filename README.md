@@ -11,6 +11,15 @@ It is a:
 
 ---
 
+## 📐 Specification
+
+QRFS is independently re-implementable. The wire format is fully specified in
+[`docs/SPEC-1.0.md`](docs/SPEC-1.0.md) — an RFC-style document that covers every byte offset,
+cryptographic primitive, and conformance requirement. The Python package in this repository is
+the reference implementation.
+
+---
+
 ## 🧠 What QRFS Is
 
 QRFS allows you to:
